@@ -61,8 +61,6 @@
       <th onclick="sortBy('name')">Name</th>
       <th onclick="sortBy('category')">Category</th>
       <th onclick="sortBy('location')">Location</th>
-      <th onclick="sortBy('qty')">Qty</th>
-      <th>Condition</th>
       <th>Notes</th>
       <th></th>
     </tr>
@@ -91,16 +89,6 @@
       <input type="text" id="f-loc">
     </div>
     <div class="form-group">
-      <label>Quantity</label>
-      <input type="text" id="f-qty">
-    </div>
-    <div class="form-group">
-      <label>Condition</label>
-      <select id="f-cond">
-        <option>Good</option><option>Fair</option><option>Poor</option><option>Needs Repair</option>
-      </select>
-    </div>
-    <div class="form-group">
       <label>Notes</label>
       <textarea id="f-notes"></textarea>
     </div>
@@ -114,11 +102,11 @@
 <script>
   const KEY = 'tool_catalog_v1';
   const DEFAULTS = [
-    { id:1, name:'10mm Combination Wrench', category:'Hand Tool', location:'Shelf A1', qty:3, condition:'Good', notes:'' },
-    { id:2, name:'Cordless Drill — DeWalt 20V', category:'Power Tool', location:'Charging Station', qty:2, condition:'Good', notes:'Batteries on shelf below' },
-    { id:3, name:'Digital Calipers', category:'Measurement', location:'Drawer M2', qty:1, condition:'Good', notes:'0.01mm resolution' },
-    { id:4, name:'Torque Wrench 1/2"', category:'Hand Tool', location:'Shelf A2', qty:1, condition:'Good', notes:'10–150 ft-lb' },
-    { id:5, name:'Safety Glasses', category:'Safety', location:'Entry Rack', qty:12, condition:'Good', notes:'' },
+    { id:1, name:'10mm Combination Wrench', category:'Hand Tool', location:'Shelf A1', notes:'' },
+    { id:2, name:'Cordless Drill — DeWalt 20V', category:'Power Tool', location:'Charging Station', notes:'Batteries on shelf below' },
+    { id:3, name:'Digital Calipers', category:'Measurement', location:'Drawer M2', notes:'0.01mm resolution' },
+    { id:4, name:'Torque Wrench 1/2"', category:'Hand Tool', location:'Shelf A2', notes:'10–150 ft-lb' },
+    { id:5, name:'Safety Glasses', category:'Safety', location:'Entry Rack', notes:'' },
   ];
 
   let tools = JSON.parse(localStorage.getItem(KEY)) || DEFAULTS;
@@ -145,15 +133,13 @@
           <td>${t.name}</td>
           <td>${t.category}</td>
           <td>${t.location}</td>
-          <td>${t.qty}</td>
-          <td>${t.condition}</td>
           <td>${t.notes || '—'}</td>
           <td class="actions">
             <button onclick="editTool(${t.id})">Edit</button>
             <button onclick="deleteTool(${t.id})">Delete</button>
           </td>
         </tr>`).join('')
-      : `<tr><td colspan="7" style="text-align:center;padding:40px;color:#aaa">No tools found.</td></tr>`;
+      : `<tr><td colspan="5" style="text-align:center;padding:40px;color:#aaa">No tools found.</td></tr>`;
 
     document.getElementById('info').textContent =
       (q || cat) ? `Showing ${list.length} of ${tools.length} tools` : `${tools.length} tools`;
@@ -187,8 +173,7 @@
     const loc = document.getElementById('f-loc').value.trim();
     if (!name || !loc) { alert('Name and Location are required.'); return; }
     const data = { name, location: loc, category: document.getElementById('f-cat').value,
-      qty: parseInt(document.getElementById('f-qty').value) || 1,
-      condition: document.getElementById('f-cond').value, notes: document.getElementById('f-notes').value.trim() };
+      notes: document.getElementById('f-notes').value.trim() };
     if (editId) tools = tools.map(t => t.id === editId ? { ...t, ...data } : t);
     else tools.push({ id: nextId++, ...data });
     save(); closeModal(); render();
@@ -201,8 +186,8 @@
   }
 
   function exportCSV() {
-    const rows = [['Name','Category','Location','Qty','Condition','Notes'],
-      ...tools.map(t => [t.name, t.category, t.location, t.qty, t.condition, t.notes])
+    const rows = [['Name','Category','Location','Notes'],
+      ...tools.map(t => [t.name, t.category, t.location, t.notes])
     ].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows);
