@@ -13,6 +13,7 @@
   input[type="search"] { flex: 1; }
   button { padding: 6px 14px; font-size: 14px; cursor: pointer; }
   button.primary { background: #333; color: #fff; border: none; }
+  button:disabled { opacity: 0.5; cursor: default; }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #333; cursor: pointer; white-space: nowrap; }
@@ -23,6 +24,10 @@
   .actions button:hover { color: #000; }
 
   .info { font-size: 12px; color: #888; margin-top: 10px; }
+
+  .status-bar { font-size: 12px; padding: 6px 10px; margin-bottom: 10px; display: none; }
+  .status-bar.loading { display: block; background: #fffbe6; border: 1px solid #ffe58f; color: #7d5f00; }
+  .status-bar.error   { display: block; background: #fff1f0; border: 1px solid #ffa39e; color: #a8071a; }
 
   /* Modal */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; z-index: 10; }
@@ -43,15 +48,30 @@
   .cat-list button:hover { color: #c00; }
   .cat-add-row { display: flex; gap: 8px; }
   .cat-add-row input { flex: 1; }
+
+  /* Config banner */
+  .config-banner { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; display: none; }
+  .config-banner.show { display: block; }
 </style>
 </head>
 <body>
 
+<!-- !! PASTE YOUR APPS SCRIPT URL BELOW !! -->
+<script>
+  const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+</script>
+
 <h1>Dune Tool Catalog</h1>
 
+<div class="config-banner" id="configBanner">
+  ⚠️ <strong>Setup required:</strong> Open this file and replace <code>YOUR_APPS_SCRIPT_URL_HERE</code> with your deployed Apps Script URL.
+</div>
+
+<div class="status-bar" id="statusBar"></div>
+
 <div class="controls">
-  <input type="search" id="searchInput" placeholder="Search..." oninput="render()">
-  <select id="catFilter" onchange="render()"></select>
+  <input type="search" id="searchInput" placeholder="Search..." oninput="renderTable()">
+  <select id="catFilter" onchange="renderTable()"></select>
   <button class="primary" onclick="openModal()">+ Add Tool</button>
   <button onclick="openCatModal()">Edit Categories</button>
   <button onclick="exportCSV()">Export CSV</button>
@@ -93,7 +113,7 @@
     </div>
     <div class="modal-buttons">
       <button onclick="closeModal()">Cancel</button>
-      <button class="primary" onclick="saveTool()">Save</button>
+      <button class="primary" id="saveBtn" onclick="saveTool()">Save</button>
     </div>
   </div>
 </div>
@@ -114,27 +134,57 @@
 </div>
 
 <script>
-  const KEY = 'tool_catalog_v1';
-  const CAT_KEY = 'tool_catalog_cats_v1';
-
-  const DEFAULT_CATS = ['Hand Tool','Power Tool','Measurement','Safety','Fastener','Other'];
-  const DEFAULTS = [
-    { id:1, name:'10mm Combination Wrench', category:'Hand Tool', location:'Shelf A1', notes:'' },
-    { id:2, name:'Cordless Drill — DeWalt 20V', category:'Power Tool', location:'Charging Station', notes:'Batteries on shelf below' },
-    { id:3, name:'Digital Calipers', category:'Measurement', location:'Drawer M2', notes:'0.01mm resolution' },
-    { id:4, name:'Torque Wrench 1/2"', category:'Hand Tool', location:'Shelf A2', notes:'10–150 ft-lb' },
-    { id:5, name:'Safety Glasses', category:'Safety', location:'Entry Rack', notes:'' },
-  ];
-
-  let tools = JSON.parse(localStorage.getItem(KEY)) || DEFAULTS;
-  let categories = JSON.parse(localStorage.getItem(CAT_KEY)) || DEFAULT_CATS;
-  let nextId = tools.length ? Math.max(...tools.map(t => t.id)) + 1 : 1;
+  let tools = [];
+  let categories = [];
   let editId = null;
   let sortCol = 'name', sortDir = 1;
 
-  function save() { localStorage.setItem(KEY, JSON.stringify(tools)); }
-  function saveCats() { localStorage.setItem(CAT_KEY, JSON.stringify(categories)); }
+  // ── STATUS ──────────────────────────────────────────────────────────
+  function setStatus(msg, type = 'loading') {
+    const bar = document.getElementById('statusBar');
+    bar.textContent = msg;
+    bar.className = 'status-bar ' + type;
+  }
+  function clearStatus() { document.getElementById('statusBar').className = 'status-bar'; }
 
+  // ── API ─────────────────────────────────────────────────────────────
+  async function apiFetch(params) {
+    const url = SCRIPT_URL + '?' + new URLSearchParams(params);
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  async function apiPost(body) {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
+  // ── LOAD ─────────────────────────────────────────────────────────────
+  async function loadAll() {
+    if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      document.getElementById('configBanner').classList.add('show');
+      return;
+    }
+    setStatus('Loading from Google Sheets…');
+    try {
+      const [toolData, catData] = await Promise.all([
+        apiFetch({ action: 'getTools' }),
+        apiFetch({ action: 'getCategories' }),
+      ]);
+      tools = toolData;
+      categories = catData;
+      populateCatDropdowns();
+      renderTable();
+      clearStatus();
+    } catch(e) {
+      setStatus('Failed to load data. Check your Apps Script URL.', 'error');
+    }
+  }
+
+  // ── RENDER ──────────────────────────────────────────────────────────
   function populateCatDropdowns() {
     const filterSel = document.getElementById('catFilter');
     const formSel = document.getElementById('f-cat');
@@ -149,7 +199,7 @@
     formSel.value = categories.includes(currentForm) ? currentForm : categories[0];
   }
 
-  function render() {
+  function renderTable() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     const cat = document.getElementById('catFilter').value;
     let list = tools.filter(t =>
@@ -168,8 +218,8 @@
           <td>${t.location}</td>
           <td>${t.notes || '—'}</td>
           <td class="actions">
-            <button onclick="editTool(${t.id})">Edit</button>
-            <button onclick="deleteTool(${t.id})">Delete</button>
+            <button onclick="editTool('${t.id}')">Edit</button>
+            <button onclick="deleteTool('${t.id}')">Delete</button>
           </td>
         </tr>`).join('')
       : `<tr><td colspan="5" style="text-align:center;padding:40px;color:#aaa">No tools found.</td></tr>`;
@@ -181,10 +231,10 @@
   function sortBy(col) {
     sortDir = sortCol === col ? -sortDir : 1;
     sortCol = col;
-    render();
+    renderTable();
   }
 
-  // ── Tool Modal ──────────────────────────────────────────────────────
+  // ── TOOL MODAL ──────────────────────────────────────────────────────
   function openModal(tool = null) {
     editId = tool?.id ?? null;
     populateCatDropdowns();
@@ -199,26 +249,50 @@
 
   function closeModal() { document.getElementById('overlay').classList.remove('open'); }
   function outsideClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-  function editTool(id) { openModal(tools.find(t => t.id === id)); }
+  function editTool(id) { openModal(tools.find(t => String(t.id) === String(id))); }
 
-  function saveTool() {
+  async function saveTool() {
     const name = document.getElementById('f-name').value.trim();
     const loc = document.getElementById('f-loc').value.trim();
     if (!name || !loc) { alert('Name and Location are required.'); return; }
+
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
     const data = { name, location: loc, category: document.getElementById('f-cat').value,
       notes: document.getElementById('f-notes').value.trim() };
-    if (editId) tools = tools.map(t => t.id === editId ? { ...t, ...data } : t);
-    else tools.push({ id: nextId++, ...data });
-    save(); closeModal(); render();
+
+    try {
+      if (editId) {
+        await apiPost({ action: 'editTool', id: editId, ...data });
+        tools = tools.map(t => String(t.id) === String(editId) ? { ...t, ...data } : t);
+      } else {
+        const res = await apiPost({ action: 'addTool', ...data });
+        tools.push({ id: res.id, ...data });
+      }
+      closeModal();
+      renderTable();
+    } catch(e) {
+      alert('Save failed. Please try again.');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
   }
 
-  function deleteTool(id) {
+  async function deleteTool(id) {
     if (!confirm('Delete this tool?')) return;
-    tools = tools.filter(t => t.id !== id);
-    save(); render();
+    try {
+      await apiPost({ action: 'deleteTool', id });
+      tools = tools.filter(t => String(t.id) !== String(id));
+      renderTable();
+    } catch(e) {
+      alert('Delete failed. Please try again.');
+    }
   }
 
-  // ── Category Modal ──────────────────────────────────────────────────
+  // ── CATEGORY MODAL ──────────────────────────────────────────────────
   function openCatModal() {
     renderCatList();
     document.getElementById('catOverlay').classList.add('open');
@@ -228,7 +302,7 @@
   function closeCatModal() {
     document.getElementById('catOverlay').classList.remove('open');
     populateCatDropdowns();
-    render();
+    renderTable();
   }
 
   function outsideCatClick(e) { if (e.target === document.getElementById('catOverlay')) closeCatModal(); }
@@ -237,29 +311,37 @@
     document.getElementById('catList').innerHTML = categories.map((c, i) => `
       <li>
         <span>${c}</span>
-        <button onclick="deleteCategory(${i})" title="Remove">✕</button>
+        <button onclick="deleteCategory('${c}')" title="Remove">✕</button>
       </li>`).join('');
   }
 
-  function addCategory() {
+  async function addCategory() {
     const val = document.getElementById('newCatInput').value.trim();
     if (!val) return;
     if (categories.includes(val)) { alert('Category already exists.'); return; }
-    categories.push(val);
-    saveCats();
-    document.getElementById('newCatInput').value = '';
-    renderCatList();
+    try {
+      await apiPost({ action: 'addCategory', category: val });
+      categories.push(val);
+      document.getElementById('newCatInput').value = '';
+      renderCatList();
+    } catch(e) {
+      alert('Failed to add category.');
+    }
   }
 
-  function deleteCategory(i) {
-    const name = categories[i];
+  async function deleteCategory(name) {
     const inUse = tools.some(t => t.category === name);
     if (inUse && !confirm(`"${name}" is used by some tools. Remove anyway?`)) return;
-    categories.splice(i, 1);
-    saveCats();
-    renderCatList();
+    try {
+      await apiPost({ action: 'deleteCategory', category: name });
+      categories = categories.filter(c => c !== name);
+      renderCatList();
+    } catch(e) {
+      alert('Failed to delete category.');
+    }
   }
 
+  // ── EXPORT ──────────────────────────────────────────────────────────
   function exportCSV() {
     const rows = [['Name','Category','Location','Notes'],
       ...tools.map(t => [t.name, t.category, t.location, t.notes])
@@ -274,8 +356,7 @@
     if (e.key === 'Escape') { closeModal(); closeCatModal(); }
   });
 
-  populateCatDropdowns();
-  render();
+  loadAll();
 </script>
 </body>
 </html>
