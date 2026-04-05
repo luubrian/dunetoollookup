@@ -114,6 +114,25 @@
   .change-link { font-size: 12px; font-weight: 300; color: var(--light); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; display: none; transition: color 0.15s; }
   .change-link:hover { color: var(--tan); }
 
+  #backToTop {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 40px;
+    height: 40px;
+    background: var(--black);
+    color: var(--bg);
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: opacity 0.2s, background 0.2s;
+  }
+  #backToTop:hover { background: var(--tan); }
+
   @media (max-width: 700px) {
     nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 20px; padding-right: 20px; }
     .setup { margin: 0 20px 32px; }
@@ -628,6 +647,13 @@ window.onload = function() {
     document.getElementById('setup-hw').classList.add('visible');
   }
 };
+</script>
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<script>
+  window.addEventListener('scroll', function() {
+    var btn = document.getElementById('backToTop');
+    btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+  });
 </script>
 </body>
 </html>
