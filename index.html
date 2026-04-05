@@ -3,73 +3,534 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dune HQ Inventory</title>
+<title>Dune Inventory Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; }
-  h1 { margin-bottom: 4px; }
-  .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
-  .setup { background: #fff8e1; border: 1px solid #f0c040; padding: 16px; margin-bottom: 20px; border-radius: 4px; }
-  .setup h3 { margin: 0 0 8px; }
-  .setup p { font-size: 13px; margin: 0 0 10px; }
-  .setup input { width: 100%; padding: 7px 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; margin-bottom: 8px; }
-  .setup button { padding: 7px 16px; margin-right: 8px; cursor: pointer; border-radius: 3px; border: 1px solid #ccc; font-size: 13px; }
-  .setup .connect { background: #1a73e8; color: white; border-color: #1a73e8; }
-  .controls { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .controls input, .controls select { padding: 7px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; }
-  .controls input { flex: 1; min-width: 200px; }
-  .info { font-size: 13px; color: #555; margin-bottom: 8px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: #f1f3f4; text-align: left; padding: 8px 10px; border-bottom: 2px solid #ddd; cursor: pointer; white-space: nowrap; user-select: none; }
-  th:hover { background: #e8eaed; }
-  td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
-  tr:hover td { background: #fafafa; }
-  mark { background: #fff176; border-radius: 2px; }
-  .bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .status { font-size: 12px; color: #888; }
-  .change-link { font-size: 12px; color: #aaa; cursor: pointer; text-decoration: underline; }
+  :root {
+    --bg:       #ffffff;
+    --panel:    #f7f6f4;
+    --border:   #e0ddd8;
+    --tan:      #b8924a;
+    --tan-dim:  #c9a96e;
+    --black:    #111110;
+    --text:     #222220;
+    --muted:    #888580;
+    --light:    #aaa89f;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 56px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--black);
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--muted);
+  }
+
+  .sync-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--light);
+  }
+  .sync-dot.live    { background: #5aaa78; }
+  .sync-dot.loading { background: var(--tan); animation: blink 0.8s infinite; }
+  .sync-dot.error   { background: #c06060; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* HERO */
+  .hero {
+    padding: 56px 48px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-eyebrow {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--tan);
+    margin-bottom: 12px;
+  }
+
+  .hero-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(40px, 6vw, 68px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--black);
+    line-height: 0.95;
+  }
+
+  /* SETUP */
+  .setup {
+    margin: 0 48px 40px;
+    padding: 32px;
+    border: 1px solid var(--tan-dim);
+    background: var(--panel);
+    display: none;
+  }
+  .setup.visible { display: block; }
+
+  .setup-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--tan);
+    margin-bottom: 20px;
+  }
+
+  .setup-steps {
+    list-style: none;
+    counter-reset: s;
+    margin-bottom: 24px;
+  }
+
+  .setup-steps li {
+    counter-increment: s;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+  }
+
+  .setup-steps li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    color: var(--tan-dim);
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  .setup-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    padding: 10px 16px;
+    outline: none;
+    margin-bottom: 6px;
+    transition: border-color 0.2s;
+  }
+  .setup-input:focus { border-color: var(--tan); }
+  .setup-input::placeholder { color: var(--light); }
+
+  .setup-hint {
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--light);
+    margin-bottom: 20px;
+  }
+
+  .btn-row { display: flex; gap: 12px; }
+
+  .btn {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    padding: 9px 22px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--tan); color: #fff; border-color: var(--tan); }
+  .btn-primary:hover { background: var(--tan-dim); border-color: var(--tan-dim); }
+  .btn-secondary { background: transparent; color: var(--muted); }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+  /* CONTROLS */
+  .controls-bar {
+    padding: 0 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    flex: 1;
+    position: relative;
+    border-right: 1px solid var(--border);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--light);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .controls-bar input[type="search"] {
+    width: 100%;
+    height: 50px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 0 20px 0 44px;
+  }
+  .controls-bar input[type="search"]::placeholder { color: var(--light); }
+
+  .filter-label {
+    display: flex;
+    align-items: center;
+    padding: 0 12px 0 18px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+    border-left: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .controls-bar select {
+    height: 50px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    outline: none;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    padding: 0 32px 0 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa89f' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-color: transparent;
+    min-width: 140px;
+  }
+  .controls-bar select option { background: var(--bg); }
+
+  .refresh-btn {
+    height: 50px;
+    padding: 0 20px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+  .refresh-btn:hover { color: var(--tan); }
+
+  /* STATS */
+  .stats-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    overflow-x: auto;
+  }
+
+  .stat {
+    padding: 18px 40px 18px 0;
+    margin-right: 40px;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--black);
+    line-height: 1;
+    display: block;
+  }
+
+  .stat-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* TABLE */
+  .table-section { padding: 0 48px 80px; }
+
+  .table-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-eyebrow {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .result-count {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--muted);
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 13px 16px 13px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--tan); }
+  th.sorted { color: var(--tan); }
+
+  td {
+    padding: 13px 16px 13px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+  }
+
+  td:first-child { font-weight: 400; }
+
+  tr:hover td { background: var(--panel); }
+
+  .td-cat  { color: var(--tan); }
+  .td-loc  { color: var(--text); }
+  .td-spec { color: var(--muted); }
+  .td-notes{ color: var(--muted); }
+
+  mark { background: rgba(184,146,74,0.15); color: var(--tan); border-radius: 1px; padding: 0 1px; }
+
+  /* EMPTY */
+  .empty {
+    padding: 72px 0;
+    text-align: center;
+  }
+  .empty-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: var(--border);
+    display: block;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .empty-msg {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--light);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-text {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--light);
+  }
+
+  .change-link {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--light);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    display: none;
+    transition: color 0.15s;
+  }
+  .change-link:hover { color: var(--tan); }
+
+  @media (max-width: 700px) {
+    nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 20px; padding-right: 20px; }
+    .setup { margin: 0 20px 32px; }
+    .hero { padding: 36px 20px 28px; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Dune HQ Inventory</h1>
-<p class="subtitle">HQ (Ritchey) Main Inventory</p>
+<nav>
+  <span class="nav-title">Dune Inventory Search</span>
+  <div class="nav-right">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncLabel">—</span>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">HQ · Ritchey · Main Inventory</div>
+  <div class="hero-title">Inventory<br>Search</div>
+</div>
 
 <div class="setup" id="setup">
-  <h3>Connect to Google Sheets</h3>
-  <p>Paste your Google Sheet URL below (the regular URL from your browser's address bar is fine).</p>
-  <input type="url" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
-  <div>
-    <button class="connect" onclick="connectSheet()">Connect</button>
-    <button onclick="loadDemo()">Load Demo</button>
+  <div class="setup-title">Connect Google Sheet</div>
+  <ol class="setup-steps">
+    <li>Open your sheet → <b>File → Share → Publish to web</b></li>
+    <li>Select your sheet tab + <b>Comma-separated values (.csv)</b> → Publish</li>
+    <li>Copy the URL and paste below — or use your normal sheet URL</li>
+  </ol>
+  <input class="setup-input" type="url" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
+  <div class="setup-hint">Sheet must be set to "Anyone with the link can view"</div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="connectSheet()">Connect</button>
+    <button class="btn btn-secondary" onclick="loadDemo()">Load Demo</button>
   </div>
 </div>
 
-<div class="controls">
-  <input type="search" id="search" placeholder="Search by name, category, notes..." oninput="doFilter()">
-  <select id="catFilter" onchange="doFilter()"><option value="">All Categories</option></select>
-  <select id="locFilter" onchange="doFilter()"><option value="">All Locations</option></select>
-  <button onclick="loadData()" style="padding:7px 12px;border:1px solid #ccc;border-radius:3px;cursor:pointer;font-size:13px;">Refresh</button>
+<div class="controls-bar">
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="search" id="search" placeholder="Search items, categories, notes…" oninput="doFilter()">
+  </div>
+  <span class="filter-label">Category</span>
+  <select id="catFilter" onchange="doFilter()"><option value="">All</option></select>
+  <span class="filter-label">Location</span>
+  <select id="locFilter" onchange="doFilter()"><option value="">All</option></select>
+  <button class="refresh-btn" onclick="loadData()">↻ Sync</button>
 </div>
 
-<div class="info" id="info"></div>
-
-<table>
-  <thead>
-    <tr>
-      <th onclick="doSort('Name')">Name <span id="s-Name"></span></th>
-      <th onclick="doSort('Category')">Category <span id="s-Category"></span></th>
-      <th onclick="doSort('Location')">Location <span id="s-Location"></span></th>
-      <th>Specific Location</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
-
-<div class="bottom-bar">
-  <span class="status" id="status"></span>
-  <span class="change-link" id="changeLink" style="display:none" onclick="changeSheet()">Change sheet URL</span>
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-num" id="statTotal">—</span>
+    <span class="stat-label">Total Items</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" id="statShown">—</span>
+    <span class="stat-label">Results</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" id="statCats">—</span>
+    <span class="stat-label">Categories</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" id="statLocs">—</span>
+    <span class="stat-label">Locations</span>
+  </div>
 </div>
+
+<div class="table-section">
+  <div class="table-meta">
+    <span class="table-eyebrow">Inventory Records</span>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th onclick="doSort('Name')">Item Name <span id="s-Name"></span></th>
+        <th onclick="doSort('Category')">Category <span id="s-Category"></span></th>
+        <th onclick="doSort('Location')">Location <span id="s-Location"></span></th>
+        <th>Specific Location</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="5"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">Connect a sheet to load inventory</span></div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <span class="footer-text" id="statusText">Not synced</span>
+  <span class="change-link" id="changeLink" onclick="changeSheet()">Change sheet URL</span>
+</footer>
 
 <script>
 var allRows=[], shown=[], sortCol='', sortDir=1;
@@ -77,6 +538,11 @@ var STORAGE_KEY='dune_sheet_url';
 
 function getUrl(){return localStorage.getItem(STORAGE_KEY)||'';}
 function saveUrl(u){localStorage.setItem(STORAGE_KEY,u);}
+
+function setSyncState(state, label) {
+  document.getElementById('syncDot').className = 'sync-dot ' + state;
+  document.getElementById('syncLabel').textContent = label;
+}
 
 function extractSheetId(url) {
   var m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
@@ -93,20 +559,22 @@ function buildFetchUrl(sheetUrl) {
 
 async function loadData(){
   var rawUrl = getUrl();
-  if(!rawUrl){document.getElementById('setup').style.display='';return;}
+  if(!rawUrl){document.getElementById('setup').classList.add('visible');setSyncState('error','Not connected');return;}
   var fetchUrl = buildFetchUrl(rawUrl);
-  if (!fetchUrl) { document.getElementById('status').textContent='Could not parse sheet ID from URL.'; return; }
-  document.getElementById('status').textContent='Syncing...';
+  if (!fetchUrl) { document.getElementById('statusText').textContent='Could not parse sheet ID.'; return; }
+  setSyncState('loading','Syncing…');
   try{
     var res = await fetch(fetchUrl);
     if(!res.ok) throw new Error('HTTP ' + res.status);
     var text = await res.text();
     if (!text.includes(',')) throw new Error('Unexpected response');
     processData(parseCSV(text));
-    document.getElementById('status').textContent='Last synced: '+new Date().toLocaleTimeString();
+    setSyncState('live','Live');
+    document.getElementById('statusText').textContent = 'Last synced: ' + new Date().toLocaleTimeString();
     setTimeout(loadData, 30000);
   }catch(e){
-    document.getElementById('status').textContent='Error: ' + e.message + '. Make sure the sheet is shared (Anyone with link can view).';
+    setSyncState('error','Error');
+    document.getElementById('statusText').textContent = 'Error: ' + e.message + '. Ensure sheet is shared (Anyone with link can view).';
   }
 }
 
@@ -114,28 +582,35 @@ function connectSheet(){
   var url=document.getElementById('urlInput').value.trim();
   if(!url){alert('Please enter a URL.');return;}
   saveUrl(url);
-  document.getElementById('setup').style.display='none';
-  document.getElementById('changeLink').style.display='';
+  document.getElementById('setup').classList.remove('visible');
+  document.getElementById('changeLink').style.display='block';
   loadData();
 }
 
 function changeSheet(){
   localStorage.removeItem(STORAGE_KEY);
   document.getElementById('urlInput').value='';
-  document.getElementById('setup').style.display='';
+  document.getElementById('setup').classList.add('visible');
   document.getElementById('changeLink').style.display='none';
   allRows=[];shown=[];
-  document.getElementById('tbody').innerHTML='';
-  document.getElementById('info').textContent='';
-  document.getElementById('status').textContent='';
+  document.getElementById('tbody').innerHTML='<tr><td colspan="5"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">Connect a sheet to load inventory</span></div></td></tr>';
+  document.getElementById('resultCount').textContent='';
+  document.getElementById('statTotal').textContent='—';
+  document.getElementById('statShown').textContent='—';
+  document.getElementById('statCats').textContent='—';
+  document.getElementById('statLocs').textContent='—';
+  setSyncState('error','Not connected');
 }
 
 function processData(rows){
   allRows=rows.filter(function(r){return r['Name']&&r['Name'].trim();});
   var cats=[...new Set(allRows.map(function(r){return r['Category'];}).filter(Boolean))].sort();
   var locs=[...new Set(allRows.map(function(r){return (r['Location']||'').trim();}).filter(Boolean))].sort();
-  fillSelect('catFilter',cats,'All Categories');
-  fillSelect('locFilter',locs,'All Locations');
+  fillSelect('catFilter',cats,'All');
+  fillSelect('locFilter',locs,'All');
+  document.getElementById('statTotal').textContent=allRows.length;
+  document.getElementById('statCats').textContent=cats.length;
+  document.getElementById('statLocs').textContent=locs.length;
   doFilter();
 }
 
@@ -163,24 +638,24 @@ function doFilter(){
     var av=(a[sortCol]||'').toLowerCase(),bv=(b[sortCol]||'').toLowerCase();
     return av<bv?-sortDir:av>bv?sortDir:0;
   });
+  document.getElementById('statShown').textContent=shown.length;
   render(q);
 }
 
 function render(q){
-  document.getElementById('info').textContent='Showing '+shown.length+' of '+allRows.length+' items';
+  document.getElementById('resultCount').textContent=shown.length+' of '+allRows.length+' items';
   if(!shown.length){
-    document.getElementById('tbody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#999">No items found</td></tr>';
+    document.getElementById('tbody').innerHTML='<tr><td colspan="5"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">No items match</span></div></td></tr>';
     return;
   }
   document.getElementById('tbody').innerHTML=shown.map(function(r){
-    // Flatten newlines in notes to comma-separated
-    var notes = (r['Notes']||'').replace(/\r\n|\r|\n/g, ', ').replace(/,\s*,/g, ',').substring(0, 150);
+    var notes=(r['Notes']||'').replace(/\r\n|\r|\n/g,', ').replace(/,\s*,/g,',').substring(0,150);
     return '<tr>'
       +'<td>'+highlight(r['Name']||'',q)+'</td>'
-      +'<td>'+highlight(r['Category']||'',q)+'</td>'
-      +'<td>'+highlight(r['Location']||'',q)+'</td>'
-      +'<td style="color:#555">'+esc(r['Specific location']||'')+'</td>'
-      +'<td style="color:#777">'+esc(notes)+'</td>'
+      +'<td><span class="td-cat">'+highlight(r['Category']||'',q)+'</span></td>'
+      +'<td><span class="td-loc">'+highlight(r['Location']||'',q)+'</span></td>'
+      +'<td><span class="td-spec">'+esc(r['Specific location']||'')+'</span></td>'
+      +'<td><span class="td-notes">'+esc(notes)+'</span></td>'
       +'</tr>';
   }).join('');
 }
@@ -188,8 +663,10 @@ function render(q){
 function doSort(col){
   sortDir=sortCol===col?-sortDir:1;
   sortCol=col;
+  document.querySelectorAll('th').forEach(function(t){t.classList.remove('sorted');});
   document.querySelectorAll('th span').forEach(function(s){s.textContent='';});
-  document.getElementById('s-'+col).textContent=sortDir===1?' ▲':' ▼';
+  var th=document.querySelector('th[onclick="doSort(\''+col+'\')"]');
+  if(th){th.classList.add('sorted');th.querySelector('span').textContent=sortDir===1?' ↑':' ↓';}
   doFilter();
 }
 
@@ -202,92 +679,63 @@ function esc(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Properly handles quoted cells containing newlines
 function parseCSV(text) {
-  var rows = [];
-  var row = [];
-  var cell = '';
-  var inQuotes = false;
-  var i = 0;
-
-  while (i < text.length) {
-    var ch = text[i];
-
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i+1] === '"') {
-          // Escaped quote
-          cell += '"';
-          i += 2;
-        } else {
-          // End of quoted cell
-          inQuotes = false;
-          i++;
-        }
-      } else {
-        // Newlines inside quotes stay in the cell value
-        cell += ch;
-        i++;
-      }
+  var rows=[],row=[],cell='',inQ=false,i=0;
+  while(i<text.length){
+    var ch=text[i];
+    if(inQ){
+      if(ch==='"'){
+        if(text[i+1]==='"'){cell+='"';i+=2;}
+        else{inQ=false;i++;}
+      } else {cell+=ch;i++;}
     } else {
-      if (ch === '"') {
-        inQuotes = true;
-        i++;
-      } else if (ch === ',') {
+      if(ch==='"'){inQ=true;i++;}
+      else if(ch===','){row.push(cell.trim());cell='';i++;}
+      else if(ch==='\n'){
         row.push(cell.trim());
-        cell = '';
-        i++;
-      } else if (ch === '\n') {
-        row.push(cell.trim());
-        if (row.some(function(c){return c!=='';})) rows.push(row);
-        row = [];
-        cell = '';
-        i++;
-        // Skip \r if next
-        if (text[i] === '\r') i++;
-      } else if (ch === '\r') {
-        i++;
-      } else {
-        cell += ch;
-        i++;
-      }
+        if(row.some(function(c){return c!=='';}))rows.push(row);
+        row=[];cell='';i++;
+        if(text[i]==='\r')i++;
+      } else if(ch==='\r'){i++;}
+      else{cell+=ch;i++;}
     }
   }
-  // Last cell/row
-  if (cell || row.length) {
-    row.push(cell.trim());
-    if (row.some(function(c){return c!=='';})) rows.push(row);
-  }
-
-  if (rows.length < 2) return [];
-  var headers = rows[0];
-  return rows.slice(1).map(function(vals) {
-    var obj = {};
-    headers.forEach(function(h, i) { obj[h.trim()] = (vals[i]||'').trim(); });
+  if(cell||row.length){row.push(cell.trim());if(row.some(function(c){return c!=='';}))rows.push(row);}
+  if(rows.length<2)return[];
+  var headers=rows[0];
+  return rows.slice(1).map(function(vals){
+    var obj={};
+    headers.forEach(function(h,i){obj[h.trim()]=(vals[i]||'').trim();});
     return obj;
   });
 }
 
 function loadDemo(){
-  document.getElementById('setup').style.display='none';
-  document.getElementById('changeLink').style.display='';
+  document.getElementById('setup').classList.remove('visible');
+  document.getElementById('changeLink').style.display='block';
   processData([
     {Name:'Pens',Category:'Handtools',Location:'Small Husky Drawer','Specific location':'Top middle drawer',Notes:''},
     {Name:'Calipers',Category:'Measurement',Location:'Large Husky Drawer','Specific location':'Second drawer',Notes:''},
     {Name:'Assorted multi-color fuses',Category:'Fuses',Location:'EE Shelf','Specific location':'3rd shelf, fuse box',Notes:'2.0A\n3.0A\n5.0A\n7.5A\n10.0A\n15.0A\n20.0A'},
     {Name:'Arduino Nano',Category:'PCBs',Location:'EE Shelf','Specific location':'4th shelf, PCB box',Notes:''},
     {Name:'Work Gloves',Category:'PPE',Location:'Small Assembly Table','Specific location':'bottom shelf',Notes:''},
+    {Name:'AmpFlow E30-400-24',Category:'Motors/Gearboxes',Location:'Center Rack','Specific location':'4th Shelf',Notes:''},
+    {Name:'Teensy 4.1',Category:'PCBs',Location:'EE Shelf','Specific location':'4th shelf, PCB box',Notes:''},
+    {Name:'WD-40 Penetrant',Category:'Adhesive/Lubricant',Location:'Red Moving Cart','Specific location':'bottom shelf',Notes:''},
   ]);
-  document.getElementById('status').textContent='Demo data loaded';
+  setSyncState('live','Demo');
+  document.getElementById('statusText').textContent='Demo data loaded';
 }
 
 window.onload=function(){
   var url=getUrl();
   if(url){
     document.getElementById('urlInput').value=url;
-    document.getElementById('setup').style.display='none';
-    document.getElementById('changeLink').style.display='';
+    document.getElementById('changeLink').style.display='block';
     loadData();
+  } else {
+    document.getElementById('setup').classList.add('visible');
+    setSyncState('error','Not connected');
   }
 };
 </script>
