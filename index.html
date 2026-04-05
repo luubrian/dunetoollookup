@@ -8,27 +8,22 @@
   body { font-family: sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; }
   h1 { margin-bottom: 4px; }
   .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
-
   .setup { background: #fff8e1; border: 1px solid #f0c040; padding: 16px; margin-bottom: 20px; border-radius: 4px; }
   .setup h3 { margin: 0 0 8px; }
   .setup p { font-size: 13px; margin: 0 0 10px; }
   .setup input { width: 100%; padding: 7px 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; margin-bottom: 8px; }
   .setup button { padding: 7px 16px; margin-right: 8px; cursor: pointer; border-radius: 3px; border: 1px solid #ccc; font-size: 13px; }
   .setup .connect { background: #1a73e8; color: white; border-color: #1a73e8; }
-
   .controls { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
   .controls input, .controls select { padding: 7px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; }
   .controls input { flex: 1; min-width: 200px; }
-
   .info { font-size: 13px; color: #555; margin-bottom: 8px; }
-
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { background: #f1f3f4; text-align: left; padding: 8px 10px; border-bottom: 2px solid #ddd; cursor: pointer; white-space: nowrap; user-select: none; }
   th:hover { background: #e8eaed; }
   td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
   tr:hover td { background: #fafafa; }
   mark { background: #fff176; border-radius: 2px; }
-
   .bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
   .status { font-size: 12px; color: #888; }
   .change-link { font-size: 12px; color: #aaa; cursor: pointer; text-decoration: underline; }
@@ -42,7 +37,7 @@
 <div class="setup" id="setup">
   <h3>Connect to Google Sheets</h3>
   <p>Paste your Google Sheet URL below (the regular URL from your browser's address bar is fine).</p>
-  <input type="url" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/…" />
+  <input type="url" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
   <div>
     <button class="connect" onclick="connectSheet()">Connect</button>
     <button onclick="loadDemo()">Load Demo</button>
@@ -50,7 +45,7 @@
 </div>
 
 <div class="controls">
-  <input type="search" id="search" placeholder="Search by name, category, notes…" oninput="doFilter()">
+  <input type="search" id="search" placeholder="Search by name, category, notes..." oninput="doFilter()">
   <select id="catFilter" onchange="doFilter()"><option value="">All Categories</option></select>
   <select id="locFilter" onchange="doFilter()"><option value="">All Locations</option></select>
   <button onclick="loadData()" style="padding:7px 12px;border:1px solid #ccc;border-radius:3px;cursor:pointer;font-size:13px;">Refresh</button>
@@ -83,17 +78,14 @@ var STORAGE_KEY='dune_sheet_url';
 function getUrl(){return localStorage.getItem(STORAGE_KEY)||'';}
 function saveUrl(u){localStorage.setItem(STORAGE_KEY,u);}
 
-// Extract sheet ID from any Google Sheets URL
 function extractSheetId(url) {
   var m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : null;
 }
 
-// Build the gviz CSV URL — this endpoint has CORS enabled by Google, no proxy needed
 function buildFetchUrl(sheetUrl) {
   var id = extractSheetId(sheetUrl);
   if (!id) return null;
-  // Extract gid if present (for specific sheet tabs)
   var gidMatch = sheetUrl.match(/[#&]gid=(\d+)/);
   var gid = gidMatch ? gidMatch[1] : '0';
   return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&gid=' + gid;
@@ -102,13 +94,8 @@ function buildFetchUrl(sheetUrl) {
 async function loadData(){
   var rawUrl = getUrl();
   if(!rawUrl){document.getElementById('setup').style.display='';return;}
-
   var fetchUrl = buildFetchUrl(rawUrl);
-  if (!fetchUrl) {
-    document.getElementById('status').textContent = 'Could not parse sheet ID from URL.';
-    return;
-  }
-
+  if (!fetchUrl) { document.getElementById('status').textContent='Could not parse sheet ID from URL.'; return; }
   document.getElementById('status').textContent='Syncing...';
   try{
     var res = await fetch(fetchUrl);
@@ -120,7 +107,6 @@ async function loadData(){
     setTimeout(loadData, 30000);
   }catch(e){
     document.getElementById('status').textContent='Error: ' + e.message + '. Make sure the sheet is shared (Anyone with link can view).';
-    console.error(e);
   }
 }
 
@@ -180,6 +166,12 @@ function doFilter(){
   render(q);
 }
 
+function formatNotes(raw) {
+  if (!raw) return '';
+  // Replace literal \n strings and real newlines with ", "
+  return raw.replace(/\\n/g, ', ').replace(/\n/g, ', ').replace(/\r/g, '').substring(0, 150);
+}
+
 function render(q){
   document.getElementById('info').textContent='Showing '+shown.length+' of '+allRows.length+' items';
   if(!shown.length){
@@ -187,7 +179,13 @@ function render(q){
     return;
   }
   document.getElementById('tbody').innerHTML=shown.map(function(r){
-    return '<tr><td>'+highlight(r['Name']||'',q)+'</td><td>'+highlight(r['Category']||'',q)+'</td><td>'+highlight(r['Location']||'',q)+'</td><td style="color:#555">'+esc(r['Specific location']||'')+'</td><td style="color:#777;white-space:pre-line">'+esc((r['Notes']||'').substring(0,120))+'</td></tr>';
+    return '<tr>'
+      +'<td>'+highlight(r['Name']||'',q)+'</td>'
+      +'<td>'+highlight(r['Category']||'',q)+'</td>'
+      +'<td>'+highlight(r['Location']||'',q)+'</td>'
+      +'<td style="color:#555">'+esc(r['Specific location']||'')+'</td>'
+      +'<td style="color:#777">'+esc(formatNotes(r['Notes']))+'</td>'
+      +'</tr>';
   }).join('');
 }
 
@@ -237,13 +235,9 @@ function loadDemo(){
   processData([
     {Name:'Pens',Category:'Handtools',Location:'Small Husky Drawer','Specific location':'Top middle drawer',Notes:''},
     {Name:'Calipers',Category:'Measurement',Location:'Large Husky Drawer','Specific location':'Second drawer',Notes:''},
+    {Name:'Assorted multi-color fuses',Category:'Fuses',Location:'EE Shelf','Specific location':'3rd shelf, fuse box',Notes:'2.0A\n3.0A\n5.0A\n7.5A\n10.0A\n15.0A\n20.0A'},
     {Name:'Arduino Nano',Category:'PCBs',Location:'EE Shelf','Specific location':'4th shelf, PCB box',Notes:''},
-    {Name:'Resistors',Category:'Resistors',Location:'EE Shelf','Specific location':'3rd shelf, resistors box',Notes:'0.01 to 10M ohm'},
     {Name:'Work Gloves',Category:'PPE',Location:'Small Assembly Table','Specific location':'bottom shelf',Notes:''},
-    {Name:'WD-40',Category:'Adhesive/Lubricant',Location:'Red Moving Cart','Specific location':'bottom shelf',Notes:''},
-    {Name:'Assorted Fuses',Category:'Fuses',Location:'EE Shelf','Specific location':'3rd shelf, fuse box',Notes:'2A-60A'},
-    {Name:'Teensy 4.1',Category:'PCBs',Location:'EE Shelf','Specific location':'4th shelf, PCB box',Notes:''},
-    {Name:'AmpFlow E30-400-24',Category:'Motors/Gearboxes',Location:'Center Rack','Specific location':'4th Shelf',Notes:''},
   ]);
   document.getElementById('status').textContent='Demo data loaded';
 }
