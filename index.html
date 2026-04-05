@@ -246,7 +246,7 @@
     </div>
     <span class="filter-label">In Stock</span>
     <select id="stockFilter-hw" onchange="doFilter('hw')"><option value="">All</option></select>
-    <span class="filter-label">Location</span>
+    <span class="filter-label">Hardware Type</span>
     <select id="locFilter-hw" onchange="doFilter('hw')"><option value="">All</option></select>
     <button class="refresh-btn" onclick="loadData('hw')">↻ Sync</button>
   </div>
@@ -267,7 +267,7 @@
       <thead>
         <tr>
           <th onclick="doSort('hw','Item Name')">Item Name <span id="s-hw-Item Name"></span></th>
-          <th onclick="doSort('hw','Location')">Location <span id="s-hw-Location"></span></th>
+          <th onclick="doSort('hw','Location')">Hardware Type <span id="s-hw-Location"></span></th>
           <th onclick="doSort('hw','In Stock?')">In Stock? <span id="s-hw-In Stock?"></span></th>
           <th onclick="doSort('hw','Vendor')">Vendor <span id="s-hw-Vendor"></span></th>
         </tr>
@@ -344,7 +344,7 @@ async function loadData(tab){
     var text = await res.text();
     if (!text.includes(',')) throw new Error('Unexpected response');
     if (tab === 'main') processMainData(parseCSV(text));
-    else processHwData(parseCSV(text));
+    else processHwDataRaw(parseCSVRaw(text));
     setSyncState('live','Live');
     document.getElementById('statusText').textContent = 'Last synced: ' + new Date().toLocaleTimeString();
     setTimeout(function(){ loadData(tab); }, 30000);
@@ -390,23 +390,31 @@ function processMainData(rows){
 
 // ── HARDWARE TAB ──
 function processHwData(rawRows){
-  // Sheet has a header row then a second row that IS the real header
-  // Real headers: Location, In Stock?, Item Name, Vendor, Quantity
-  // Skip the first row if it looks like a meta-header
-  var rows = rawRows;
-  if (rows.length && rows[0]['HARDWARE (screws, nuts, etc)']) {
-    // Re-map using row[0] as headers
-    var hdrs = rows[0];
-    rows = rawRows.slice(1).map(function(r) {
-      return {
-        'Item Name': r['Unnamed: 2'] || r['Item Name'] || '',
-        'Location':  r['HARDWARE (screws, nuts, etc)'] || r['Location'] || '',
-        'In Stock?': r['Unnamed: 1'] || r['In Stock?'] || '',
-        'Vendor':    r['Unnamed: 3'] || r['Vendor'] || ''
-      };
-    });
+  // The sheet has a title row then the real header row.
+  // Use parseCSVRaw to get arrays, find the row with "Item Name", remap.
+  state.hw.rows = [];
+}
+function processHwDataRaw(arrays){
+  // Find the row index containing "Item Name"
+  var hdrIdx = -1;
+  for(var i=0;i<Math.min(arrays.length,5);i++){
+    if(arrays[i].indexOf('Item Name')>=0){hdrIdx=i;break;}
   }
-  state.hw.rows = rows.filter(function(r){return r['Item Name']&&r['Item Name'].trim();});
+  if(hdrIdx<0){console.error('Could not find header row');return;}
+  var hdrs = arrays[hdrIdx];
+  var iName = hdrs.indexOf('Item Name');
+  var iLoc  = hdrs.indexOf('Location');
+  var iStock= hdrs.indexOf('In Stock?');
+  var iVend = hdrs.indexOf('Vendor');
+  var rows = arrays.slice(hdrIdx+1).map(function(r){
+    return {
+      'Item Name': (r[iName]||'').trim(),
+      'Location':  (r[iLoc] ||'').trim(),
+      'In Stock?': (r[iStock]||'').trim(),
+      'Vendor':    (r[iVend] ||'').trim()
+    };
+  }).filter(function(r){return r['Item Name'];});
+  state.hw.rows = rows;
   var locs=[...new Set(state.hw.rows.map(function(r){return (r['Location']||'').trim();}).filter(Boolean))].sort();
   var stocks=[...new Set(state.hw.rows.map(function(r){return (r['In Stock?']||'').trim();}).filter(Boolean))].sort();
   fillSelect('locFilter-hw',locs,'All');
@@ -514,6 +522,26 @@ function highlight(text,q){
 }
 
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function parseCSVRaw(text) {
+  var rows=[],row=[],cell='',inQ=false,i=0;
+  while(i<text.length){
+    var ch=text[i];
+    if(inQ){
+      if(ch==='"'){if(text[i+1]==='"'){cell+='"';i+=2;}else{inQ=false;i++;}}
+      else{cell+=ch;i++;}
+    } else {
+      if(ch==='"'){inQ=true;i++;}
+      else if(ch===','){row.push(cell.trim());cell='';i++;}
+      else if(ch==='
+'){row.push(cell.trim());if(row.some(function(c){return c!=='';}))rows.push(row);row=[];cell='';i++;if(text[i]==='')i++;}
+      else if(ch===''){i++;}
+      else{cell+=ch;i++;}
+    }
+  }
+  if(cell||row.length){row.push(cell.trim());if(row.some(function(c){return c!=='';}))rows.push(row);}
+  return rows;
+}
 
 function parseCSV(text) {
   var rows=[],row=[],cell='',inQ=false,i=0;
