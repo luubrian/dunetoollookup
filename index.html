@@ -35,8 +35,10 @@
 
   .hero { padding: 56px 48px 0; border-bottom: 1px solid var(--border); }
   .hero-eyebrow { font-size: 12px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tan); margin-bottom: 12px; transition: opacity 0.3s; }
-  .hero-desc { font-size: 13px; font-weight: 300; color: var(--muted); margin-bottom: 20px; transition: opacity 0.3s; }
-  .hero-title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(40px, 6vw, 68px); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--black); line-height: 0.95; margin-bottom: 32px; }
+  .hero-body { display: flex; align-items: center; gap: 32px; margin-bottom: 32px; }
+  .hero-divider { width: 1px; height: 80px; background: var(--border); flex-shrink: 0; transition: opacity 0.3s; }
+  .hero-desc { font-size: 13px; font-weight: 300; color: var(--muted); max-width: 280px; line-height: 1.6; transition: opacity 0.3s; }
+  .hero-title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(40px, 6vw, 68px); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--black); line-height: 0.95; }
 
   .tabs { display: flex; }
   .tab { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 400; padding: 12px 24px; cursor: pointer; border: none; background: transparent; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
@@ -130,8 +132,11 @@
 
 <div class="hero">
   <div class="hero-eyebrow" id="heroEyebrow">HQ · Ritchey · Main Inventory</div>
-  <div class="hero-desc" id="heroDesc" style="display:none">Hardware inventory is located in the 8x8 containers on top of the Red Moving Cart.</div>
-  <div class="hero-title">Inventory<br>Search</div>
+  <div class="hero-body">
+    <div class="hero-title">Inventory<br>Search</div>
+    <div class="hero-divider" id="heroDivider"></div>
+    <div class="hero-desc" id="heroDesc">Main EE, Tool, and Material Inventory for Ritchey Location.</div>
+  </div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('main')">HQ Inventory</button>
     <button class="tab" onclick="switchTab('hw')">Hardware Inventory</button>
@@ -274,18 +279,25 @@ function switchTab(tab) {
 
   var eyebrow = document.getElementById('heroEyebrow');
   var desc    = document.getElementById('heroDesc');
+  var divider = document.getElementById('heroDivider');
   eyebrow.style.opacity = '0';
   desc.style.opacity    = '0';
+  divider.style.opacity = '0';
   setTimeout(function() {
+    var divider = document.getElementById('heroDivider');
     if (tab === 'main') {
       eyebrow.textContent = 'HQ · Ritchey · Main Inventory';
-      desc.style.display = 'none';
+      desc.textContent = 'Main EE, Tool, and Material Inventory for Ritchey Location.';
+      desc.style.display = 'block';
+      divider.style.display = 'block';
     } else {
       eyebrow.textContent = 'HQ · Ritchey · Hardware Inventory';
       desc.style.display = 'block';
+      divider.style.display = 'block';
     }
     eyebrow.style.opacity = '1';
     desc.style.opacity    = '1';
+    divider.style.opacity = '1';
   }, 300);
 }
 
