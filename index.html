@@ -350,14 +350,14 @@ function processMain(arrays) {
 function processHw(arrays) {
   if (!arrays.length) return;
 
-  // Find the real header row
+  // Find the real header row (contains "Item Name")
   var hdrIdx = -1;
   for (var i = 0; i < Math.min(arrays.length, 5); i++) {
     if (arrays[i].indexOf('Item Name') >= 0) { hdrIdx = i; break; }
   }
   if (hdrIdx < 0) { console.error('HW: header row not found'); return; }
 
-  var hdrs  = arrays[hdrIdx];
+  var hdrs   = arrays[hdrIdx];
   var iName  = hdrs.indexOf('Item Name');
   var iLoc   = hdrs.indexOf('Location');
   var iStock = hdrs.indexOf('In Stock?');
