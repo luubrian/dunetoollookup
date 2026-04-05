@@ -166,12 +166,6 @@ function doFilter(){
   render(q);
 }
 
-function formatNotes(raw) {
-  if (!raw) return '';
-  // Replace literal \n strings and real newlines with ", "
-  return raw.replace(/\\n/g, ', ').replace(/\n/g, ', ').replace(/\r/g, '').substring(0, 150);
-}
-
 function render(q){
   document.getElementById('info').textContent='Showing '+shown.length+' of '+allRows.length+' items';
   if(!shown.length){
@@ -179,12 +173,14 @@ function render(q){
     return;
   }
   document.getElementById('tbody').innerHTML=shown.map(function(r){
+    // Flatten newlines in notes to comma-separated
+    var notes = (r['Notes']||'').replace(/\r\n|\r|\n/g, ', ').replace(/,\s*,/g, ',').substring(0, 150);
     return '<tr>'
       +'<td>'+highlight(r['Name']||'',q)+'</td>'
       +'<td>'+highlight(r['Category']||'',q)+'</td>'
       +'<td>'+highlight(r['Location']||'',q)+'</td>'
       +'<td style="color:#555">'+esc(r['Specific location']||'')+'</td>'
-      +'<td style="color:#777">'+esc(formatNotes(r['Notes']))+'</td>'
+      +'<td style="color:#777">'+esc(notes)+'</td>'
       +'</tr>';
   }).join('');
 }
@@ -206,27 +202,70 @@ function esc(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function parseCSV(text){
-  var lines=text.split('\n');
-  var headers=parseRow(lines[0]);
-  return lines.slice(1).filter(function(l){return l.trim();}).map(function(l){
-    var vals=parseRow(l);
-    var obj={};
-    headers.forEach(function(h,i){obj[h.trim()]=(vals[i]||'').trim();});
+// Properly handles quoted cells containing newlines
+function parseCSV(text) {
+  var rows = [];
+  var row = [];
+  var cell = '';
+  var inQuotes = false;
+  var i = 0;
+
+  while (i < text.length) {
+    var ch = text[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') {
+          // Escaped quote
+          cell += '"';
+          i += 2;
+        } else {
+          // End of quoted cell
+          inQuotes = false;
+          i++;
+        }
+      } else {
+        // Newlines inside quotes stay in the cell value
+        cell += ch;
+        i++;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+        i++;
+      } else if (ch === ',') {
+        row.push(cell.trim());
+        cell = '';
+        i++;
+      } else if (ch === '\n') {
+        row.push(cell.trim());
+        if (row.some(function(c){return c!=='';})) rows.push(row);
+        row = [];
+        cell = '';
+        i++;
+        // Skip \r if next
+        if (text[i] === '\r') i++;
+      } else if (ch === '\r') {
+        i++;
+      } else {
+        cell += ch;
+        i++;
+      }
+    }
+  }
+  // Last cell/row
+  if (cell || row.length) {
+    row.push(cell.trim());
+    if (row.some(function(c){return c!=='';})) rows.push(row);
+  }
+
+  if (rows.length < 2) return [];
+  var headers = rows[0];
+  return rows.slice(1).map(function(vals) {
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h.trim()] = (vals[i]||'').trim(); });
     return obj;
   });
-}
-
-function parseRow(line){
-  var res=[],cur='',q=false;
-  for(var i=0;i<line.length;i++){
-    var c=line[i];
-    if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}
-    else if(c===','&&!q){res.push(cur);cur='';}
-    else cur+=c;
-  }
-  res.push(cur);
-  return res;
 }
 
 function loadDemo(){
