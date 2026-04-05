@@ -357,8 +357,6 @@ function processHw(arrays) {
   }
   if (hdrIdx < 0) { console.error('HW: header row not found'); return; }
 
-  // Debug: log what we're seeing
-  console.log('HW hdrIdx:', hdrIdx, 'headers:', arrays[hdrIdx], 'first data row:', arrays[hdrIdx+1]);
   // Build objects from headers exactly like processMain does
   var headers = arrays[hdrIdx];
   var objects = arrays.slice(hdrIdx + 1).map(function(r) {
@@ -370,7 +368,7 @@ function processHw(arrays) {
   var rows = objects.map(function(r) {
     return {
       name:  r['Item Name'] || '',
-      loc:   r['Location']  || '',
+      loc:   r['Hardware Type'] || '',
       stock: r['In Stock?'] || '',
       vendor:r['Vendor']    || ''
     };
