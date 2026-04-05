@@ -34,7 +34,8 @@
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
   .hero { padding: 56px 48px 0; border-bottom: 1px solid var(--border); }
-  .hero-eyebrow { font-size: 12px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tan); margin-bottom: 12px; }
+  .hero-eyebrow { font-size: 12px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tan); margin-bottom: 12px; transition: opacity 0.3s; }
+  .hero-desc { font-size: 13px; font-weight: 300; color: var(--muted); margin-bottom: 20px; transition: opacity 0.3s; }
   .hero-title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(40px, 6vw, 68px); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--black); line-height: 0.95; margin-bottom: 32px; }
 
   .tabs { display: flex; }
@@ -128,7 +129,8 @@
 </nav>
 
 <div class="hero">
-  <div class="hero-eyebrow">HQ · Ritchey · Main Inventory</div>
+  <div class="hero-eyebrow" id="heroEyebrow">HQ · Ritchey · Main Inventory</div>
+  <div class="hero-desc" id="heroDesc" style="display:none">Hardware inventory is located in the 8x8 containers on top of the Red Moving Cart.</div>
   <div class="hero-title">Inventory<br>Search</div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('main')">HQ Inventory</button>
@@ -262,12 +264,29 @@ function setSyncState(s, label) {
 // ── TAB SWITCHING ──────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelector('.tab[onclick="switchTab(\'' + tab + '\')"]').classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', (tab === 'main' && i === 0) || (tab === 'hw' && i === 1));
+  });
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-' + tab).classList.add('active');
   document.getElementById('changeLink-main').style.display = (tab === 'main' && localStorage.getItem(KEYS.main)) ? 'inline' : 'none';
   document.getElementById('changeLink-hw').style.display   = (tab === 'hw'   && localStorage.getItem(KEYS.hw))   ? 'inline' : 'none';
+
+  var eyebrow = document.getElementById('heroEyebrow');
+  var desc    = document.getElementById('heroDesc');
+  eyebrow.style.opacity = '0';
+  desc.style.opacity    = '0';
+  setTimeout(function() {
+    if (tab === 'main') {
+      eyebrow.textContent = 'HQ · Ritchey · Main Inventory';
+      desc.style.display = 'none';
+    } else {
+      eyebrow.textContent = 'HQ · Ritchey · Hardware Inventory';
+      desc.style.display = 'block';
+    }
+    eyebrow.style.opacity = '1';
+    desc.style.opacity    = '1';
+  }, 300);
 }
 
 // ── SHEET URL HELPERS ──────────────────────────────────────────────
@@ -457,7 +476,7 @@ function renderHw(q) {
   if (!shown.length) { document.getElementById('tbody-hw').innerHTML = '<tr><td colspan="4"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">No items match</span></div></td></tr>'; return; }
   document.getElementById('tbody-hw').innerHTML = shown.map(function(r) {
     var sl = r.stock.toLowerCase();
-    var cls = sl === 'in-stock' ? 'stock-in' : (sl.includes('low') || sl.includes('restock')) ? 'stock-low' : 'stock-out';
+    var cls = sl === 'in-stock' ? 'stock-in' : sl.includes('restock') ? 'stock-out' : sl.includes('low') ? 'stock-low' : 'stock-out';
     return '<tr>'
       + '<td>' + hl(r.name, q) + '</td>'
       + '<td class="td-muted">' + hl(r.loc, q) + '</td>'
