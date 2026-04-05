@@ -45,8 +45,9 @@
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--black); border-bottom: 2px solid var(--tan); font-weight: 500; }
 
-  .page { display: none; }
+  .page { display: none; opacity: 0; transition: opacity 0.25s; }
   .page.active { display: block; }
+  .page.visible { opacity: 1; }
 
   .setup { margin: 0 48px 40px; padding: 32px; border: 1px solid var(--tan-dim); background: var(--panel); display: none; }
   .setup.visible { display: block; }
@@ -70,14 +71,14 @@
   .search-icon { position: absolute; left: 0; top: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; color: var(--light); font-size: 16px; pointer-events: none; }
   .controls-bar input[type="search"] { width: 100%; height: 50px; background: transparent; border: none; outline: none; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 300; padding: 0 20px 0 44px; }
   .controls-bar input[type="search"]::placeholder { color: var(--light); }
-  .filter-label { display: flex; align-items: center; padding: 0 12px 0 18px; font-size: 12px; font-weight: 400; color: var(--muted); border-left: 1px solid var(--border); white-space: nowrap; }
-  .controls-bar select { height: 50px; background: transparent; border: none; border-left: 1px solid var(--border); outline: none; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 300; padding: 0 32px 0 14px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa89f' d='M5 7L0 2h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-color: transparent; width: 160px; }
+  .filter-label { display: flex; align-items: center; padding: 0 12px 0 18px; font-size: 12px; font-weight: 400; color: var(--muted); border-left: 1px solid var(--border); white-space: nowrap; width: 140px; flex-shrink: 0; }
+  .controls-bar select { height: 50px; background: transparent; border: none; border-left: 1px solid var(--border); outline: none; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 300; padding: 0 32px 0 14px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa89f' d='M5 7L0 2h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-color: transparent; width: 180px; flex-shrink: 0; }
   .controls-bar select option { background: var(--bg); }
   .refresh-btn { height: 50px; padding: 0 20px; background: transparent; border: none; border-left: 1px solid var(--border); color: var(--muted); font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 400; cursor: pointer; transition: color 0.15s; white-space: nowrap; }
   .refresh-btn:hover { color: var(--tan); }
 
-  .stats-bar { display: flex; border-bottom: 1px solid var(--border); padding: 0 48px; overflow-x: auto; }
-  .stat { padding: 18px 0; width: 140px; border-right: 1px solid var(--border); flex-shrink: 0; }
+  .stats-bar { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); padding: 0 48px; overflow-x: auto; height: 72px; }
+  .stat { padding: 0 0 0 28px; width: 140px; border-right: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; }
   .stat:last-child { border-right: none; }
   .stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 700; color: var(--black); line-height: 1; display: block; }
   .stat-label { font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; margin-top: 3px; }
@@ -217,12 +218,10 @@
     <div class="stat"><span class="stat-num" id="statShown-hw">—</span><span class="stat-label">Results</span></div>
     <div class="stat"><span class="stat-num" id="statIn-hw">—</span><span class="stat-label">In Stock</span></div>
     <div class="stat"><span class="stat-num" id="statLow-hw">—</span><span class="stat-label">Low / Restock</span></div>
-    <div class="stat" style="width:auto;padding-left:40px;display:flex;align-items:center;gap:32px;border-right:none;">
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        <div style="display:flex;align-items:center;gap:10px;"><span class="stock-badge stock-in" style="width:90px;text-align:center;font-size:10px;">In Stock</span><span style="font-size:11px;font-weight:300;color:var(--muted);">&gt; 10 items</span></div>
-        <div style="display:flex;align-items:center;gap:10px;"><span class="stock-badge stock-low" style="width:90px;text-align:center;font-size:10px;">Low</span><span style="font-size:11px;font-weight:300;color:var(--muted);">6 – 10 items</span></div>
-        <div style="display:flex;align-items:center;gap:10px;"><span class="stock-badge stock-out" style="width:90px;text-align:center;font-size:10px;">Restock</span><span style="font-size:11px;font-weight:300;color:var(--muted);">0 – 5 items</span></div>
-      </div>
+    <div class="stat" style="width:auto;padding-left:28px;display:flex;flex-direction:column;justify-content:center;gap:4px;border-right:none;">
+      <div style="display:flex;align-items:center;gap:8px;"><span class="stock-badge stock-in" style="width:72px;text-align:center;font-size:9px;padding:1px 6px;">In Stock</span><span style="font-size:10px;font-weight:300;color:var(--muted);">&gt; 10 items</span></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="stock-badge stock-low" style="width:72px;text-align:center;font-size:9px;padding:1px 6px;">Low</span><span style="font-size:10px;font-weight:300;color:var(--muted);">6 – 10 items</span></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="stock-badge stock-out" style="width:72px;text-align:center;font-size:9px;padding:1px 6px;">Restock</span><span style="font-size:10px;font-weight:300;color:var(--muted);">0 – 5 items</span></div>
     </div>
   </div>
   <div class="table-section">
@@ -267,15 +266,27 @@ function setSyncState(s, label) {
 
 // ── TAB SWITCHING ──────────────────────────────────────────────────
 function switchTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab').forEach(function(t, i) {
-    t.classList.toggle('active', (tab === 'main' && i === 0) || (tab === 'hw' && i === 1));
-  });
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.getElementById('page-' + tab).classList.add('active');
-  document.getElementById('changeLink-main').style.display = (tab === 'main' && localStorage.getItem(KEYS.main)) ? 'inline' : 'none';
-  document.getElementById('changeLink-hw').style.display   = (tab === 'hw'   && localStorage.getItem(KEYS.hw))   ? 'inline' : 'none';
+  // Fade out current page
+  var current = document.querySelector('.page.active');
+  if (current) {
+    current.classList.remove('visible');
+    setTimeout(function() {
+      current.classList.remove('active');
+      // Switch to new page
+      activeTab = tab;
+      document.querySelectorAll('.tab').forEach(function(t, i) {
+        t.classList.toggle('active', (tab === 'main' && i === 0) || (tab === 'hw' && i === 1));
+      });
+      var next = document.getElementById('page-' + tab);
+      next.classList.add('active');
+      document.getElementById('changeLink-main').style.display = (tab === 'main' && localStorage.getItem(KEYS.main)) ? 'inline' : 'none';
+      document.getElementById('changeLink-hw').style.display   = (tab === 'hw'   && localStorage.getItem(KEYS.hw))   ? 'inline' : 'none';
+      // Fade in next page
+      requestAnimationFrame(function() { next.classList.add('visible'); });
+    }, 250);
+  }
 
+  
   var eyebrow = document.getElementById('heroEyebrow');
   var desc    = document.getElementById('heroDesc');
   var divider = document.getElementById('heroDivider');
@@ -597,6 +608,9 @@ function loadDemo() {
 
 // ── INIT ───────────────────────────────────────────────────────────
 window.onload = function() {
+  // Show initial page
+  var initialPage = document.querySelector('.page.active');
+  if (initialPage) requestAnimationFrame(function() { initialPage.classList.add('visible'); });
   var mainUrl = localStorage.getItem(KEYS.main);
   var hwUrl   = localStorage.getItem(KEYS.hw);
   if (mainUrl) {
