@@ -575,6 +575,10 @@ window.onload = function() {
   }
   if (hwUrl) {
     document.getElementById('urlInput-hw').value = hwUrl;
+    document.getElementById('changeLink-hw').style.display = 'inline';
+    loadData('hw');
+  } else {
+    document.getElementById('setup-hw').classList.add('visible');
   }
 };
 </script>
