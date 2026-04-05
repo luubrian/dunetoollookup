@@ -623,6 +623,14 @@ function fillSelect(id,opts,placeholder){
 
 function doFilter(){
   var q=document.getElementById('search').value.toLowerCase();
+
+  // 🥚
+  if(q.trim()==='brian'){
+    document.getElementById('statShown').textContent='1';
+    document.getElementById('resultCount').textContent='1 of 1 items';
+    document.getElementById('tbody').innerHTML='<tr><td style="font-weight:400">Brian</td><td><span class="td-cat">Staff</span></td><td><span class="td-loc">Kitchen</span></td><td><span class="td-spec">HQ</span></td><td><span class="td-notes">Chief Catering Officer</span></td></tr>';
+    return;
+  }
   var cat=document.getElementById('catFilter').value;
   var loc=document.getElementById('locFilter').value;
   shown=allRows.filter(function(r){
