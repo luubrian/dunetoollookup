@@ -446,7 +446,7 @@
 <body>
 
 <nav>
-  <span class="nav-title">Dune Inventory Search</span>
+  <span class="nav-title">Dune Industries</span>
   <div class="nav-right">
     <div class="sync-indicator">
       <div class="sync-dot" id="syncDot"></div>
@@ -625,6 +625,12 @@ function doFilter(){
   var q=document.getElementById('search').value.toLowerCase();
 
   // 🥚
+  if(q.trim()==='ryan'){
+    document.getElementById('statShown').textContent='1';
+    document.getElementById('resultCount').textContent='1 of 1 items';
+    document.getElementById('tbody').innerHTML='<tr><td style="font-weight:400">Ryan</td><td><span class="td-cat">Staff</span></td><td><span class="td-loc">Unknown</span></td><td><span class="td-spec">On the toilet</span></td><td><span class="td-notes">Dumbass</span></td></tr>';
+    return;
+  }
   if(q.trim()==='brian'){
     document.getElementById('statShown').textContent='1';
     document.getElementById('resultCount').textContent='1 of 1 items';
