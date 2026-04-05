@@ -350,27 +350,29 @@ function processMain(arrays) {
 function processHw(arrays) {
   if (!arrays.length) return;
 
-  // Find the real header row (contains "Item Name")
+  // Find the real header row (contains "Item Name") — same approach as processMain
   var hdrIdx = -1;
   for (var i = 0; i < Math.min(arrays.length, 5); i++) {
     if (arrays[i].indexOf('Item Name') >= 0) { hdrIdx = i; break; }
   }
   if (hdrIdx < 0) { console.error('HW: header row not found'); return; }
 
-  var hdrs   = arrays[hdrIdx];
-  var iName  = hdrs.indexOf('Item Name');
-  var iLoc   = hdrs.indexOf('Location');
-  var iStock = hdrs.indexOf('In Stock?');
-  var iVend  = hdrs.indexOf('Vendor');
+  // Build objects from headers exactly like processMain does
+  var headers = arrays[hdrIdx];
+  var objects = arrays.slice(hdrIdx + 1).map(function(r) {
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h] = (r[i] || '').trim(); });
+    return obj;
+  }).filter(function(r) { return r['Item Name']; });
 
-  var rows = arrays.slice(hdrIdx + 1).map(function(r) {
+  var rows = objects.map(function(r) {
     return {
-      name:  (r[iName]  || '').trim(),
-      loc:   (r[iLoc]   || '').trim(),
-      stock: (r[iStock] || '').trim(),
-      vendor:(r[iVend]  || '').trim()
+      name:  r['Item Name'] || '',
+      loc:   r['Location']  || '',
+      stock: r['In Stock?'] || '',
+      vendor:r['Vendor']    || ''
     };
-  }).filter(function(r) { return r.name; });
+  });
 
   S.hw.rows = rows;
   var locs   = unique(rows.map(function(r) { return r.loc; })).sort();
