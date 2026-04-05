@@ -534,10 +534,8 @@ function parseCSVRaw(text) {
       if(ch==='"'){inQ=true;i++;}
       else if(ch===','){row.push(cell.trim());cell='';i++;}
       else if(ch==='
-'){row.push(cell.trim());if(row.some(function(c){return c!=='';}))rows.push(row);row=[];cell='';i++;if(text[i]==='
-')i++;}
-      else if(ch==='
-'){i++;}
+'){row.push(cell.trim());if(row.some(function(c){return c!=='';}))rows.push(row);row=[];cell='';i++;if(text[i]==='')i++;}
+      else if(ch===''){i++;}
       else{cell+=ch;i++;}
     }
   }
