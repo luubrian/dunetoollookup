@@ -630,21 +630,21 @@ window.onload = function() {
   // Show initial page
   var initialPage = document.querySelector('.page.active');
   if (initialPage) requestAnimationFrame(function() { initialPage.classList.add('visible'); });
+  // Hardcoded sheet URLs — pre-populate if not already set
+  if (!localStorage.getItem(KEYS.main)) localStorage.setItem(KEYS.main, 'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=1936647090#gid=1936647090');
+  if (!localStorage.getItem(KEYS.hw))   localStorage.setItem(KEYS.hw,   'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=480109269#gid=480109269');
   var mainUrl = localStorage.getItem(KEYS.main);
   var hwUrl   = localStorage.getItem(KEYS.hw);
   if (mainUrl) {
     document.getElementById('urlInput-main').value = mainUrl;
     document.getElementById('changeLink-main').style.display = 'inline';
     loadData('main');
-  } else {
-    document.getElementById('setup-main').classList.add('visible');
   }
-  if (hwUrl) {
-    document.getElementById('urlInput-hw').value = hwUrl;
+  var hwUrl2 = localStorage.getItem(KEYS.hw);
+  if (hwUrl2) {
+    document.getElementById('urlInput-hw').value = hwUrl2;
     document.getElementById('changeLink-hw').style.display = 'inline';
     loadData('hw');
-  } else {
-    document.getElementById('setup-hw').classList.add('visible');
   }
 };
 </script>
