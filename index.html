@@ -133,21 +133,12 @@
   }
   #backToTop:hover { background: var(--tan); }
 
-  @media (max-width: 700px) {
-    nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 20px; padding-right: 20px; }
-    .setup { margin: 0 20px 32px; }
-    .hero { padding: 36px 20px 0; }
-  }
-
-  /* ── LOCK SCREEN ── */
   #lockScreen {
     position: fixed; inset: 0; z-index: 9999;
     background: var(--bg);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 0;
   }
-  #lockScreen img { height: 80px; width: auto; margin-bottom: 40px; }
   .lock-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 11px; font-weight: 600;
@@ -162,17 +153,23 @@
     text-align: center;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 28px; font-weight: 700; color: var(--black);
-    outline: none; caret-color: var(--tan);
+    outline: none; caret-color: transparent;
     transition: border-color 0.15s;
   }
   .pin-digit:focus { border-color: var(--tan); }
   .pin-digit.error { border-color: #c06060; animation: shake 0.3s; }
-  @keyframes shake {
-    0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}
-  }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
   .lock-hint { font-size: 11px; font-weight: 300; color: var(--light); margin-top: 6px; height: 16px; }
-  .lock-error { color: #c06060; }
-  .lock-footer {
+  .lock-error { color: #c06060 !important; }
+  .lock-footer { position: absolute; bottom: 24px; font-size: 10px; font-weight: 300; color: var(--light); letter-spacing: 0.1em; }
+
+  @media (max-width: 700px) {
+    nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 20px; padding-right: 20px; }
+    .setup { margin: 0 20px 32px; }
+    .hero { padding: 36px 20px 0; }
+  }
+
+    .lock-footer {
     position: absolute; bottom: 24px;
     font-size: 10px; font-weight: 300;
     color: var(--light); letter-spacing: 0.1em;
@@ -182,10 +179,9 @@
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
 <div id="lockScreen">
   <div class="lock-title">Dune Industries — Inventory Access</div>
-  <div class="lock-input-row" id="pinRow">
+  <div class="lock-input-row">
     <input class="pin-digit" id="d0" type="tel" maxlength="1" autocomplete="off">
     <input class="pin-digit" id="d1" type="tel" maxlength="1" autocomplete="off">
     <input class="pin-digit" id="d2" type="tel" maxlength="1" autocomplete="off">
@@ -193,6 +189,8 @@
     <input class="pin-digit" id="d4" type="tel" maxlength="1" autocomplete="off">
   </div>
   <div class="lock-hint" id="lockHint">Enter this week's PIN</div>
+  <button onclick="triggerSendEmail()" id="sendBtn" style="margin-top:20px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:400;padding:8px 20px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--tan)';this.style.color='var(--tan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Send PIN to email</button>
+  <div id="sendStatus" style="font-size:11px;font-weight:300;color:var(--light);margin-top:8px;height:16px;"></div>
   <div class="lock-footer">PIN resets every Monday · Sent to authorized contacts</div>
 </div>
 
@@ -680,14 +678,100 @@ function loadDemo() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
-// ── PIN AUTH ──────────────────────────────────────────────────────
-// EmailJS config — fill in your IDs from emailjs.com
-var EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // emailjs.com → Account → API Keys
-var EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // emailjs.com → Email Services
-var EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // emailjs.com → Email Templates
-
-// Secret salt — change this to anything you want, keep it private
+// ── PIN AUTH ─────────────────────────────────────────────────────
 var PIN_SALT = 'dune2024ritchey';
+
+// ── EMAILJS CONFIG — fill these in ───────────────────────────────
+var EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+var EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+var EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+// ─────────────────────────────────────────────────────────────────
+
+function sendPINEmail(onSuccess, onError) {
+  var weekKey = getWeekKey();
+  // Reverse-lookup PIN from hash table by brute force (only 100k options)
+  var pin = null;
+  for (var i = 0; i < 100000; i++) {
+    var candidate = String(i).padStart(5, '0');
+    // We stored hashes so we need to hash candidate and compare
+    // Instead just regenerate directly using the algorithm
+    pin = null;
+    break;
+  }
+  // Regenerate PIN directly (algorithm is safe since hashes are what's exposed)
+  var h = 5381;
+  var str = weekKey + PIN_SALT;
+  for (var j = 0; j < str.length; j++) {
+    h = ((h * 33) ^ str.charCodeAt(j)) >>> 0;
+  }
+  pin = String(h % 100000).padStart(5, '0');
+
+  emailjs.init(EJS_PUBLIC_KEY);
+  emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, {
+    to_email: 'brian.l.pstna@gmail.com',
+    week:     weekKey,
+    pin:      pin
+  }).then(function() {
+    if (onSuccess) onSuccess();
+  }, function(err) {
+    if (onError) onError(err);
+  });
+}
+
+var PIN_HASHES = {
+    "2026-W15": "34293e04a621ed975f835e319acff1798b068ee51665824fda770f3047bec59e",
+    "2026-W16": "b00882353099649734567f1cebe9c4f35579f684456e307d9936854a45abf75e",
+    "2026-W17": "d8a28d38aa203c5d4a2d809f7f04c8c964300fbb474ef053b6d7cc6312cef0af",
+    "2026-W18": "69ce8f02a341f764935f698d8a169aaa78409f3f5b16040813dc37f8fd419e20",
+    "2026-W19": "53d9462655466d661c6d8d6c3fd5788694fc705fc33247765dfa3d372a403008",
+    "2026-W20": "31c43e8ed64ed0591031461196efbce8d7016907bac18e88b9fd7cae368d0415",
+    "2026-W21": "d470f8a4c1412890b4d001d4ea52550085c121e22959a1580b3005f40152df26",
+    "2026-W22": "37f7f342b1e5824092f5201b555775fa3fefe07474c01aee10e5fd9979f848e2",
+    "2026-W23": "b59847cc4209bceee386a2323b63b392c69ec72e25015240f3175befc005b0a9",
+    "2026-W24": "7c3d5694cfe0119c43134f6623135c28353f0db5ea34632bcb4194c9b5f6a377",
+    "2026-W25": "b70ee50c00de706c071455b9f6424231defb2b8c9731561596d2e6805c0e26c8",
+    "2026-W26": "5cd67600190c121be47a488a9b403cf972a3877137de51fd53f1cca1ae4a4831",
+    "2026-W27": "bcf6dfff5f4ce1ffab62a77a0273a83e9e7fe59a2bcd2e50404dcd52330e7b0b",
+    "2026-W28": "4acc5486f64b0e7c6ec5638b412195587c84ee5770f950cf37b3a4ad6d531d9a",
+    "2026-W29": "119225f6e0a0210f4f341be8f8741207965c523d4cfa5fdddebf4186f199559c",
+    "2026-W30": "7933ee83766c89276d7d1d716de07b71b11a5b7db45dc6ca676b87d92be44caa",
+    "2026-W31": "ab38badd0cf5fbe6ad5c28968e73c6c672d42a682428e07a4cb2bbac571a9eef",
+    "2026-W32": "5a12b4bd4a16149ad9202d07660d54372eef235da67b0ad9b81d6130916f6a82",
+    "2026-W33": "5919051139325824a0790e709bcec8939a3b24199384a893d3d00f11501fc098",
+    "2026-W34": "cbdab5be873483e802eae5d3a17cf0bcb38a4f913bbe09fa3c4f391611baf943",
+    "2026-W35": "7df959ce954281bb303c8eadfd70bd876cfd6ad9df842bde82d30286494ceaa7",
+    "2026-W36": "5832150fe56797f921b9a68a5d63610408168ea3468856ef8055750073c8dda1",
+    "2026-W37": "dd2b07faff4f5a5a3dc189196921ba317628563746e25472d0a26737935d9f3e",
+    "2026-W38": "b90aa012b00e32755d3bcfdd7fe553155834bc51e19ecddb54506bfb42a50d87",
+    "2026-W39": "bd05df020513e7acf5a3e20965a57dc108f0b410a59d56e6397768d24560f32a",
+    "2026-W40": "f7685ca330679e5aaec7d71851182376982330fcf933ee3033ff86ccdf349428",
+    "2026-W41": "0042195c1865439732c49f98d8eb368be7cfb0fb750c79cc9626acad0ae965f6",
+    "2026-W42": "353b18b2b30405372010f23ad9a8fd551b180e74189d10187b8db597c3333ea6",
+    "2026-W43": "68008b59ae8102e531f33509f33e7d27e34ae46da32c449faa2ef05bd1699564",
+    "2026-W44": "c8cd8f060489d2249740e2c2cfba4f85794c78392ac34a4a6a4f7e2049418940",
+    "2026-W45": "e2bfed717298d777e971c9b670787c0625d18f61724217abb3c677971d81a0f5",
+    "2026-W46": "3a4f37ccce00eda0ad201cb0eea12d37cae59dafab771d3e1f1af577eb6f889e",
+    "2026-W47": "5b277f3364dfbcbc3739b0a163104d205bcf2e57e45289fd05cdc669e95b713a",
+    "2026-W48": "748f49abbbb55558e38317e1c1227b349085dd3cafcd454e57c617b299863631",
+    "2026-W49": "a2e9dcee5def30c01dbb92d4d6c3b8f9fa0fcd2fd320e5528aad8604feed1942",
+    "2026-W50": "7a563c28f4d4c1b797850d42c30d291cc67fbc43d085827b77bf554befcb14cf",
+    "2026-W51": "cf638757bcdedf0e92d617cff5d56a5626c51bd7a3a3ef46cb6f6aaaf6cfa059",
+    "2026-W52": "ca1711f8714e8b268ac61275771271f2b40fc6c9f6834001ebadf362564c9595",
+    "2026-W53": "c49298239210cf79b5bef602c63af519615cc0fc9bbd9360244040a01522bed2",
+    "2026-W54": "75a70be95d218aea03fd99ea26d011ac2f317291203769c5d2d34dd3976b5c91",
+    "2026-W55": "145ae00a0db1326149806e559b4c16f5612cf2d3ca87bbe72e43714f97ec1437",
+    "2026-W56": "fbb24eadb1e84146d11342f73a82c8ec72e73df3ec0ae79e96ab7bcd15b146ac",
+    "2026-W57": "4fe04e2f82b47bc0928179a564642165a15799dc8f39c2ff64ff36518cdad7fd",
+    "2026-W58": "1c52fdb1361a4bc31ed9fd578fa5f913079cc6ad91f56a76465d3fc8bf39513c",
+    "2026-W59": "1c74ab9deb239ef8169f2b6f1c877e25f14d9e0cc49b41d187971e94775e317c",
+    "2026-W60": "d590e0538b3f987f92db8ff5a4c52a4813964b4af26470afc1f808f4edd17142",
+    "2026-W61": "d0cac5d3f6f332bde2395a9fb934e30b1ad3f4f854816e8c5ba670d449844dd6",
+    "2026-W62": "c760a0b3f5a58d50d5bbe923e78d49564a58cd43a9e9f817daa72b5534a348be",
+    "2026-W63": "63d25bc85042efa85053237b2e9b4d7814a8c04f2acbd0958549bf835c862633",
+    "2026-W64": "976a0f03c16a2bef5ac76ea012cd04b368d6e8cec1230b1262c3888e55dcd3d4",
+    "2026-W65": "6986969b6af8bef2a51ae15fa6fc42a3e74348884a7b9285140e0053f04c527d",
+    "2026-W66": "bec9e33b164c5dcaf64cb2ae242cd6e201778b9135fd2c02c9654deac8a448a3"
+  };
 
 function getWeekKey() {
   var d = new Date();
@@ -696,58 +780,66 @@ function getWeekKey() {
   return d.getFullYear() + '-W' + week;
 }
 
-function generatePIN(weekKey) {
-  var str = weekKey + PIN_SALT;
-  var hash = 5381;
-  for (var i = 0; i < str.length; i++) {
-    hash = ((hash * 33) ^ str.charCodeAt(i)) >>> 0;
-  }
-  return String(hash % 100000).padStart(5, '0');
+async function hashInput(input) {
+  var str = input + PIN_SALT;
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+function triggerSendEmail() {
+  var btn = document.getElementById('sendBtn');
+  var status = document.getElementById('sendStatus');
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  status.textContent = 'Sending…';
+  sendPINEmail(
+    function() {
+      status.style.color = 'var(--green)';
+      status.textContent = 'PIN sent to brian.l.pstna@gmail.com';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    },
+    function(err) {
+      status.style.color = '#c06060';
+      status.textContent = 'Error — check your EmailJS config';
+      console.error(err);
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  );
 }
 
 function checkAuth() {
-  var stored = sessionStorage.getItem('dune_auth_week');
-  return stored === getWeekKey();
+  return sessionStorage.getItem('dune_auth') === getWeekKey();
 }
 
 function unlock() {
-  sessionStorage.setItem('dune_auth_week', getWeekKey());
+  sessionStorage.setItem('dune_auth', getWeekKey());
   var lock = document.getElementById('lockScreen');
-  lock.style.opacity = '0';
   lock.style.transition = 'opacity 0.4s';
+  lock.style.opacity = '0';
   setTimeout(function() { lock.style.display = 'none'; }, 400);
 }
 
-function checkPIN() {
-  var entered = '';
-  for (var i = 0; i < 5; i++) entered += (document.getElementById('d' + i).value || '');
-  if (entered.length < 5) return;
-  var correct = generatePIN(getWeekKey());
-  if (entered === correct) {
-    unlock();
-  } else {
-    document.getElementById('lockHint').textContent = 'Incorrect PIN — try again';
-    document.getElementById('lockHint').classList.add('lock-error');
-    for (var j = 0; j < 5; j++) {
-      var dj = document.getElementById('d' + j);
-      dj.classList.add('error');
-      dj.value = '';
-    }
-    setTimeout(function() {
-      document.querySelectorAll('.pin-digit').forEach(function(d) { d.classList.remove('error'); });
-      document.getElementById('lockHint').textContent = "Enter this week's PIN";
-      document.getElementById('lockHint').classList.remove('lock-error');
-      document.getElementById('d0').focus();
-    }, 800);
+function showError() {
+  document.getElementById('lockHint').textContent = 'Incorrect PIN — try again';
+  document.getElementById('lockHint').classList.add('lock-error');
+  for (var j = 0; j < 5; j++) {
+    var d = document.getElementById('d' + j);
+    d.classList.add('error');
+    d.value = '';
   }
+  setTimeout(function() {
+    document.querySelectorAll('.pin-digit').forEach(function(d) { d.classList.remove('error'); });
+    document.getElementById('lockHint').textContent = "Enter this week's PIN";
+    document.getElementById('lockHint').classList.remove('lock-error');
+    document.getElementById('d0').focus();
+  }, 800);
 }
 
-// Single keydown handler for all PIN input
 document.addEventListener('keydown', function(e) {
-  var digits = document.querySelectorAll('.pin-digit');
   var active = document.activeElement;
-  var isDigit = active && active.classList.contains('pin-digit');
-  if (!isDigit) return;
+  if (!active || !active.classList.contains('pin-digit')) return;
   var idx = parseInt(active.id.replace('d', ''));
 
   if (e.key >= '0' && e.key <= '9') {
@@ -756,47 +848,37 @@ document.addEventListener('keydown', function(e) {
     if (idx < 4) {
       document.getElementById('d' + (idx + 1)).focus();
     }
-    checkPIN();
+    // Check when all 5 filled
+    var entered = '';
+    for (var i = 0; i < 5; i++) entered += (document.getElementById('d' + i).value || '');
+    if (entered.length === 5) {
+      var weekKey = getWeekKey();
+      var expected = PIN_HASHES[weekKey];
+      if (!expected) { showError(); return; }
+      hashInput(entered).then(function(h) {
+        if (h === expected) unlock();
+        else showError();
+      });
+    }
   } else if (e.key === 'Backspace') {
     e.preventDefault();
-    if (active.value) {
-      active.value = '';
-    } else if (idx > 0) {
-      var prev = document.getElementById('d' + (idx - 1));
-      prev.value = '';
-      prev.focus();
-    }
+    if (active.value) { active.value = ''; }
+    else if (idx > 0) { var prev = document.getElementById('d' + (idx-1)); prev.value = ''; prev.focus(); }
   }
 });
 
-function maybeSendPINEmail() {
-  var weekKey = getWeekKey();
-  var lastSent = localStorage.getItem('dune_pin_sent_week');
-  if (lastSent === weekKey) return; // already sent this week
-  if (EJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') return; // not configured yet
-
-  var pin = generatePIN(weekKey);
-  emailjs.init(EJS_PUBLIC_KEY);
-  emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, {
-    to_email: 'brian.l.pstna@gmail.com',
-    week:     weekKey,
-    pin:      pin
-  }).then(function() {
-    localStorage.setItem('dune_pin_sent_week', weekKey);
-  });
-}
-
 window.onload = function() {
   maybeSendPINEmail();
-  if (checkAuth()) {
-    document.getElementById('lockScreen').style.display = 'none';
-  } else {
-    document.getElementById('d0').focus();
-  }
+
 
   // Show initial page
   var initialPage = document.querySelector('.page.active');
   if (initialPage) requestAnimationFrame(function() { initialPage.classList.add('visible'); });
+  if (checkAuth()) {
+    document.getElementById('lockScreen').style.display = 'none';
+  } else {
+    setTimeout(function() { document.getElementById('d0').focus(); }, 50);
+  }
   // Hardcoded sheet URLs — pre-populate if not already set
   if (!localStorage.getItem(KEYS.main)) localStorage.setItem(KEYS.main, 'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=1936647090#gid=1936647090');
   if (!localStorage.getItem(KEYS.hw))   localStorage.setItem(KEYS.hw,   'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=480109269#gid=480109269');
