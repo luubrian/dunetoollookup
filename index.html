@@ -373,6 +373,15 @@ var S = {
 var activeTab = 'main';
 var KEYS = { main: 'dune_sheet_url', hw: 'dune_hw_url' };
 
+function _d(enc) {
+  var key = 'dune';
+  var bin = atob(enc);
+  return bin.split('').map(function(c, i) {
+    return String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length));
+  }).join('');
+}
+var _su = { m: 'DAEaFRdPQUoAGg0WShIBCgMZC0sHGgNKFwUcAAURHQ0BEBoWSxFBVF03NwAHJzkxNiIlLx1ELRYeOCE9UDQ2M1UkKgomBRwGPQMCLR4+FyYeAz9KAREHEVsSBwFZRFdWUkNaUlRMXkYDHApYVUxdU1JBWVVdRQ==', h: 'DAEaFRdPQUoAGg0WShIBCgMZC0sHGgNKFwUcAAURHQ0BEBoWSxFBVF03NwAHJzkxNiIlLx1ELRYeOCE9UDQ2M1UkKgomBRwGPQMCLR4+FyYeAz9KAREHEVsSBwFZQVZVVUVXV1JMTQINEVNRXEVfVV1HWFw=' };
+
 // ── SYNC UI ────────────────────────────────────────────────────────
 function setSyncState(s, label) {
   document.getElementById('syncDot').className = 'sync-dot ' + s;
@@ -921,8 +930,8 @@ window.onload = function() {
     setTimeout(function() { document.getElementById('d0').focus(); }, 50);
   }
   // Hardcoded sheet URLs — pre-populate if not already set
-  if (!localStorage.getItem(KEYS.main)) localStorage.setItem(KEYS.main, 'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=1936647090#gid=1936647090');
-  if (!localStorage.getItem(KEYS.hw))   localStorage.setItem(KEYS.hw,   'https://docs.google.com/spreadsheets/d/19BYecRWTRWKJy1CszMOX4AXV1QDoBprcYvlHzKyCzvQ/edit?gid=480109269#gid=480109269');
+  if (!localStorage.getItem(KEYS.main)) localStorage.setItem(KEYS.main, _d(_su.m));
+  if (!localStorage.getItem(KEYS.hw))   localStorage.setItem(KEYS.hw,   _d(_su.h));
   var mainUrl = localStorage.getItem(KEYS.main);
   var hwUrl   = localStorage.getItem(KEYS.hw);
   if (mainUrl) {
