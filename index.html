@@ -163,10 +163,54 @@
   .lock-error { color: #c06060 !important; }
   .lock-footer { position: absolute; bottom: 24px; font-size: 10px; font-weight: 300; color: var(--light); letter-spacing: 0.1em; }
 
-  @media (max-width: 700px) {
-    nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 20px; padding-right: 20px; }
-    .setup { margin: 0 20px 32px; }
-    .hero { padding: 36px 20px 0; }
+  @media (max-width: 768px) {
+    /* General */
+    nav, .hero, .controls-bar, .stats-bar, .table-section, footer { padding-left: 16px; padding-right: 16px; }
+    .setup { margin: 0 16px 24px; padding: 20px; }
+    .hero { padding: 28px 16px 0; }
+    .hero-title { font-size: 48px; }
+    .hero-body { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    .hero-divider { display: none !important; }
+    .hero-desc { max-width: 100%; }
+
+    /* Nav */
+    nav { height: auto; padding: 10px 16px; }
+    nav img { height: 36px !important; }
+
+    /* Tabs */
+    .tab { padding: 10px 14px; font-size: 12px; }
+
+    /* Controls bar — stack vertically */
+    .controls-bar { flex-direction: column; gap: 0; }
+    .search-wrap { border-right: none; border-bottom: 1px solid var(--border); width: 100%; }
+    .controls-bar input[type="search"] { width: 100%; height: 46px; }
+    .filter-label { border-left: none; border-top: 1px solid var(--border); padding: 8px 14px 4px; width: auto; font-size: 11px; }
+    .controls-bar select { border-left: none; border-top: 1px solid var(--border); height: 40px; width: 100% !important; padding: 0 32px 0 14px; }
+    .refresh-btn { border-left: none; border-top: 1px solid var(--border); height: 40px; text-align: left; padding: 0 14px; }
+
+    /* Stats bar — scroll horizontally */
+    .stats-bar { height: auto !important; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 16px; }
+    .stat { padding: 12px 20px 12px 0 !important; width: auto !important; min-width: 80px; }
+    .stat-num { font-size: 22px; }
+    .stat-label { font-size: 9px; }
+
+    /* Table — horizontal scroll */
+    .table-wrap-mobile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { font-size: 12px; min-width: 480px; }
+    th, td { padding: 10px 10px 10px 0; }
+
+    /* Hide specific location col on mobile to save space */
+    th:nth-child(4), td:nth-child(4) { display: none; }
+
+    /* Footer */
+    footer { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 16px; }
+
+    /* Back to top */
+    #backToTop { bottom: 16px; right: 16px; }
+
+    /* Lock screen */
+    .lock-title { font-size: 10px; text-align: center; padding: 0 20px; }
+    .pin-digit { width: 40px; height: 52px; font-size: 24px; }
   }
 
     .lock-footer {
@@ -249,7 +293,7 @@
       <span class="table-eyebrow">Inventory Records</span>
       <span class="result-count" id="resultCount-main"></span>
     </div>
-    <table>
+    <div class="table-wrap-mobile"><table>
       <thead><tr>
         <th onclick="doSort('main','Name')">Item Name <span id="arr-main-Name"></span></th>
         <th onclick="doSort('main','Category')">Category <span id="arr-main-Category"></span></th>
@@ -258,7 +302,7 @@
         <th>Notes</th>
       </tr></thead>
       <tbody id="tbody-main"><tr><td colspan="5"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">Connect a sheet to load inventory</span></div></td></tr></tbody>
-    </table>
+    </table></div>
   </div>
 </div>
 
@@ -300,7 +344,7 @@
       <span class="table-eyebrow">Hardware Records</span>
       <span class="result-count" id="resultCount-hw"></span>
     </div>
-    <table>
+    <div class="table-wrap-mobile"><table>
       <thead><tr>
         <th onclick="doSort('hw','name')">Item Name <span id="arr-hw-name"></span></th>
         <th onclick="doSort('hw','loc')">Hardware Type <span id="arr-hw-loc"></span></th>
@@ -308,7 +352,7 @@
         <th onclick="doSort('hw','vendor')">Vendor <span id="arr-hw-vendor"></span></th>
       </tr></thead>
       <tbody id="tbody-hw"><tr><td colspan="4"><div class="empty"><span class="empty-num">—</span><span class="empty-msg">Connect a sheet to load inventory</span></div></td></tr></tbody>
-    </table>
+    </table></div>
   </div>
 </div>
 
@@ -682,9 +726,9 @@ function loadDemo() {
 var PIN_SALT = 'dune2024ritchey';
 
 // ── EMAILJS CONFIG — fill these in ───────────────────────────────
-var EJS_PUBLIC_KEY  = '1cUKcpkzjAcD2mb9M';
-var EJS_SERVICE_ID  = 'service_0zf8nui';
-var EJS_TEMPLATE_ID = 'template_yakftvm';
+var EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+var EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+var EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 // ─────────────────────────────────────────────────────────────────
 
 function sendPINEmail(onSuccess, onError) {
