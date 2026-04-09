@@ -868,9 +868,6 @@ document.addEventListener('keydown', function(e) {
 });
 
 window.onload = function() {
-  maybeSendPINEmail();
-
-
   // Show initial page
   var initialPage = document.querySelector('.page.active');
   if (initialPage) requestAnimationFrame(function() { initialPage.classList.add('visible'); });
