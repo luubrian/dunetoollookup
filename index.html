@@ -185,12 +185,12 @@
 <!-- LOCK SCREEN -->
 <div id="lockScreen">
   <div class="lock-title">Dune Industries — Inventory Access</div>
-  <div class="lock-input-row">
-    <input class="pin-digit" id="d0" type="password" inputmode="numeric" maxlength="1" oninput="pinInput(this,0)">
-    <input class="pin-digit" id="d1" type="password" inputmode="numeric" maxlength="1" oninput="pinInput(this,1)">
-    <input class="pin-digit" id="d2" type="password" inputmode="numeric" maxlength="1" oninput="pinInput(this,2)">
-    <input class="pin-digit" id="d3" type="password" inputmode="numeric" maxlength="1" oninput="pinInput(this,3)">
-    <input class="pin-digit" id="d4" type="password" inputmode="numeric" maxlength="1" oninput="pinInput(this,4)">
+  <div class="lock-input-row" id="pinRow">
+    <input class="pin-digit" id="d0" type="tel" maxlength="1" autocomplete="off">
+    <input class="pin-digit" id="d1" type="tel" maxlength="1" autocomplete="off">
+    <input class="pin-digit" id="d2" type="tel" maxlength="1" autocomplete="off">
+    <input class="pin-digit" id="d3" type="tel" maxlength="1" autocomplete="off">
+    <input class="pin-digit" id="d4" type="tel" maxlength="1" autocomplete="off">
   </div>
   <div class="lock-hint" id="lockHint">Enter this week's PIN</div>
   <div class="lock-footer">PIN resets every Monday · Sent to authorized contacts</div>
@@ -682,12 +682,12 @@ function loadDemo() {
 // ── INIT ───────────────────────────────────────────────────────────
 // ── PIN AUTH ──────────────────────────────────────────────────────
 // EmailJS config — fill in your IDs from emailjs.com
-var EJS_PUBLIC_KEY  = '1cUKcpkzjAcD2mb9M';   // emailjs.com → Account → API Keys
-var EJS_SERVICE_ID  = 'service_0zf8nui';   // emailjs.com → Email Services
-var EJS_TEMPLATE_ID = 'template_yakftvm';  // emailjs.com → Email Templates
+var EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // emailjs.com → Account → API Keys
+var EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // emailjs.com → Email Services
+var EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // emailjs.com → Email Templates
 
 // Secret salt — change this to anything you want, keep it private
-var PIN_SALT = 'dune2026ritchey';
+var PIN_SALT = 'dune2024ritchey';
 
 function getWeekKey() {
   var d = new Date();
@@ -698,13 +698,11 @@ function getWeekKey() {
 
 function generatePIN(weekKey) {
   var str = weekKey + PIN_SALT;
-  var hash = 0;
+  var hash = 5381;
   for (var i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
+    hash = ((hash * 33) ^ str.charCodeAt(i)) >>> 0;
   }
-  var pin = Math.abs(hash) % 100000;
-  return String(pin).padStart(5, '0');
+  return String(hash % 100000).padStart(5, '0');
 }
 
 function checkAuth() {
@@ -720,44 +718,53 @@ function unlock() {
   setTimeout(function() { lock.style.display = 'none'; }, 400);
 }
 
-function pinInput(el, idx) {
-  // Only allow digits
-  el.value = el.value.replace(/[^0-9]/g, '');
-  if (el.value.length === 1 && idx < 4) {
-    document.getElementById('d' + (idx + 1)).focus();
-  }
-  // Check when all 5 filled
+function checkPIN() {
   var entered = '';
-  for (var i = 0; i < 5; i++) entered += document.getElementById('d' + i).value;
-  if (entered.length === 5) {
-    var correct = generatePIN(getWeekKey());
-    if (entered === correct) {
-      unlock();
-    } else {
-      document.getElementById('lockHint').textContent = 'Incorrect PIN — try again';
-      document.getElementById('lockHint').classList.add('lock-error');
-      for (var j = 0; j < 5; j++) {
-        var d = document.getElementById('d' + j);
-        d.classList.add('error');
-        d.value = '';
-      }
-      setTimeout(function() {
-        document.querySelectorAll('.pin-digit').forEach(function(d) { d.classList.remove('error'); });
-        document.getElementById('lockHint').textContent = 'Enter this week's PIN';
-        document.getElementById('lockHint').classList.remove('lock-error');
-        document.getElementById('d0').focus();
-      }, 800);
+  for (var i = 0; i < 5; i++) entered += (document.getElementById('d' + i).value || '');
+  if (entered.length < 5) return;
+  var correct = generatePIN(getWeekKey());
+  if (entered === correct) {
+    unlock();
+  } else {
+    document.getElementById('lockHint').textContent = 'Incorrect PIN — try again';
+    document.getElementById('lockHint').classList.add('lock-error');
+    for (var j = 0; j < 5; j++) {
+      var dj = document.getElementById('d' + j);
+      dj.classList.add('error');
+      dj.value = '';
     }
+    setTimeout(function() {
+      document.querySelectorAll('.pin-digit').forEach(function(d) { d.classList.remove('error'); });
+      document.getElementById('lockHint').textContent = "Enter this week's PIN";
+      document.getElementById('lockHint').classList.remove('lock-error');
+      document.getElementById('d0').focus();
+    }, 800);
   }
 }
 
-// Handle backspace navigation between digits
+// Single keydown handler for all PIN input
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Backspace') {
-    var active = document.activeElement;
-    if (active && active.classList.contains('pin-digit') && active.value === '') {
-      var idx = parseInt(active.id.replace('d',''));
-      if (idx > 0) document.getElementById('d' + (idx - 1)).focus();
+  var digits = document.querySelectorAll('.pin-digit');
+  var active = document.activeElement;
+  var isDigit = active && active.classList.contains('pin-digit');
+  if (!isDigit) return;
+  var idx = parseInt(active.id.replace('d', ''));
+
+  if (e.key >= '0' && e.key <= '9') {
+    e.preventDefault();
+    active.value = e.key;
+    if (idx < 4) {
+      document.getElementById('d' + (idx + 1)).focus();
+    }
+    checkPIN();
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (active.value) {
+      active.value = '';
+    } else if (idx > 0) {
+      var prev = document.getElementById('d' + (idx - 1));
+      prev.value = '';
+      prev.focus();
     }
   }
 });
